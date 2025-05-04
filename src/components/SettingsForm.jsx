@@ -10,7 +10,8 @@ const SettingsForm = () => {
     apiKey: '',
     batchSize: 4,
     useProxy: false,
-    proxyUrl: ''
+    proxyUrl: '',
+    model: 'gpt-4o-image-vip'
   });
   
   const [showApiKey, setShowApiKey] = useState(false);
@@ -23,7 +24,8 @@ const SettingsForm = () => {
       apiKey: config.apiKey ? '••••••••••••••••' : '',
       batchSize: config.batchSize || 4,
       useProxy: config.useProxy || false,
-      proxyUrl: config.proxyUrl || ''
+      proxyUrl: config.proxyUrl || '',
+      model: config.model || 'gpt-4o-image-vip'
     });
   }, [config]);
   
@@ -37,7 +39,8 @@ const SettingsForm = () => {
       apiEndpoint: formData.apiEndpoint,
       batchSize: formData.batchSize,
       useProxy: formData.useProxy,
-      proxyUrl: formData.proxyUrl
+      proxyUrl: formData.proxyUrl,
+      model: formData.model
     };
     
     // 只有当API密钥被修改时才更新它
@@ -72,7 +75,8 @@ const SettingsForm = () => {
       apiKey: config.apiKey ? '••••••••••••••••' : '',
       batchSize: config.batchSize || 4,
       useProxy: config.useProxy || false,
-      proxyUrl: config.proxyUrl || ''
+      proxyUrl: config.proxyUrl || '',
+      model: config.model || 'gpt-4o-image-vip'
     });
     setShowApiKey(false);
   };
@@ -130,6 +134,25 @@ const SettingsForm = () => {
           </div>
           <p className="text-xs text-gray-500">
             此API密钥将保存在您的浏览器中，仅在您的设备上使用。
+          </p>
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="model" className="block text-sm font-medium text-gray-700">
+            模型名称
+          </label>
+          <input
+            type="text"
+            id="model"
+            name="model"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="例如: gpt-4o-image-vip"
+            value={formData.model}
+            onChange={handleChange}
+            required
+          />
+          <p className="text-xs text-gray-500">
+            输入支持图像生成的模型名称，默认为 gpt-4o-image-vip
           </p>
         </div>
         

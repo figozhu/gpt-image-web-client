@@ -5,7 +5,8 @@ const defaultConfig = {
   apiKey: "",
   batchSize: 4,
   useProxy: false,
-  proxyUrl: ""
+  proxyUrl: "",
+  model: "gpt-4o-image-vip"
 };
 
 const ConfigContext = createContext();

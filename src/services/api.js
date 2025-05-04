@@ -7,9 +7,10 @@
  * @param {boolean} useProxy - 是否使用代理
  * @param {string} proxyUrl - 代理URL
  * @param {string} ratio - 可选的画面尺寸比例（如："1:1", "3:2", "2:3"）
+ * @param {string} model - 图像生成模型名称
  * @returns {Promise} - API响应
  */
-export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
+export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) {
   const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
   
   try {
@@ -40,7 +41,7 @@ export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoin
     }
     
     const requestBody = {
-      model: 'gpt-4o-image-vip',
+      model: model || 'gpt-4o-image-vip',
       messages: [
         {
           role: "user",
@@ -82,12 +83,13 @@ export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoin
  * @param {boolean} useProxy - 是否使用代理
  * @param {string} proxyUrl - 代理URL
  * @param {string} ratio - 可选的画面尺寸比例
+ * @param {string} model - 图像生成模型名称
  * @returns {Promise} - 所有请求的Promise.all结果
  */
-export async function generateBatch(prompt, imageBase64Array, count, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
+export async function generateBatch(prompt, imageBase64Array, count, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) {
   const promises = [];
   for (let i = 0; i < count; i++) {
-    promises.push(generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio));
+    promises.push(generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model));
   }
   
   return await Promise.all(promises);

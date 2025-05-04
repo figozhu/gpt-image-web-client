@@ -73,7 +73,8 @@ const Home = () => {
                 config.apiEndpoint,
                 config.useProxy,
                 config.proxyUrl,
-                ratio
+                ratio,
+                config.model
               )
             );
           }
@@ -145,6 +146,7 @@ const Home = () => {
         imageBase64Array: imageBase64Array,
         batchSize: batchSize,
         ratio: ratio,
+        model: config.model,
         results: processedImages.map(img => ({
           imageUrl: img.url,
           responseTime: elapsedTimeMs,
@@ -162,7 +164,7 @@ const Home = () => {
   };
   
   // 辅助函数：调用单个图像生成API
-  const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) => {
+  const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) => {
     const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
     
     // 如果提供了比例，将其添加到提示词内容中
@@ -192,7 +194,7 @@ const Home = () => {
     }
     
     const requestBody = {
-      model: 'gpt-4o-image-vip',
+      model: model || 'gpt-4o-image-vip',
       messages: [
         {
           role: "user",

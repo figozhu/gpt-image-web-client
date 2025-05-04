@@ -56,13 +56,3 @@
 
 1. 使用CORS代理（在设置中配置）
 2. 安装允许跨域请求的浏览器扩展
-
-## 🌐 One-Click Deploy to Cloudflare Pages
-
-Want to host your own version?
-
-Click the button below to instantly deploy this project to [Cloudflare Pages](https://pages.cloudflare.com/).  
-You’ll need to log in with your GitHub and Cloudflare accounts:
-
-[![Deploy to Cloudflare](https://deploy.cloudflare.com/button.svg)](https://deploy.cloudflare.com/?repository=https://github.com/figozhu/gpt-image-web-client)
-

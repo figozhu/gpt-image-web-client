@@ -50,11 +50,16 @@ export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoin
       ]
     };
     
+    // 导入解混淆函数
+    const { deobfuscateApiKey } = await import('./storage');
+    // 解密API密钥
+    const decodedApiKey = deobfuscateApiKey(apiKey);
+    
     const response = await fetch(finalEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${decodedApiKey}`
       },
       body: JSON.stringify(requestBody)
     });
@@ -87,9 +92,14 @@ export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoin
  * @returns {Promise} - 所有请求的Promise.all结果
  */
 export async function generateBatch(prompt, imageBase64Array, count, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) {
+  // 导入解混淆函数
+  const { deobfuscateApiKey } = await import('./storage');
+  // 解密API密钥
+  const decodedApiKey = deobfuscateApiKey(apiKey);
+  
   const promises = [];
   for (let i = 0; i < count; i++) {
-    promises.push(generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model));
+    promises.push(generateImage(prompt, imageBase64Array, decodedApiKey, apiEndpoint, useProxy, proxyUrl, ratio, model));
   }
   
   return await Promise.all(promises);

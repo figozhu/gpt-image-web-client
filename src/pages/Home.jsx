@@ -273,11 +273,16 @@ const Home = () => {
       ]
     };
     
+    // 导入解混淆函数
+    const { deobfuscateApiKey } = await import('../services/storage');
+    // 解密API密钥
+    const decodedApiKey = deobfuscateApiKey(apiKey);
+    
     const response = await fetch(finalEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Authorization': `Bearer ${decodedApiKey}`
       },
       body: JSON.stringify(requestBody)
     });

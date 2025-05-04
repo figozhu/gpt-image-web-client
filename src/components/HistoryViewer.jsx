@@ -5,11 +5,13 @@ import { downloadImage } from '../services/api';
 const HistoryViewer = () => {
   const { sessions, removeSession, clearSessions, loading, searchSessions } = useHistory();
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [expandedImage, setExpandedImage] = useState(null);
+  const [copiedPrompt, setCopiedPrompt] = useState(null);
   const searchTimeoutRef = useRef(null);
   const sessionsPerPage = 5;
   
@@ -20,29 +22,41 @@ const HistoryViewer = () => {
     }
   }, [sessions, searchQuery]);
   
-  // 异步搜索处理
-  const handleSearch = (value) => {
-    setSearchQuery(value);
-    setIsSearching(true);
-    
-    // 清除之前的定时器
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
+  // 执行搜索
+  const executeSearch = async () => {
+    if (!searchInputValue.trim()) {
+      setSearchQuery('');
+      return;
     }
     
-    // 设置新的定时器
-    searchTimeoutRef.current = setTimeout(async () => {
-      try {
-        // 直接处理搜索结果，而不是依赖context中的状态更新
-        const results = await searchSessions(value);
-        setFilteredSessions(results || []);
-      } catch (error) {
-        console.error('搜索出错:', error);
-        setFilteredSessions([]);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
+    setSearchQuery(searchInputValue);
+    setIsSearching(true);
+    
+    try {
+      const results = await searchSessions(searchInputValue);
+      setFilteredSessions(results || []);
+    } catch (error) {
+      console.error('搜索出错:', error);
+      setFilteredSessions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // 处理输入变化
+  const handleInputChange = (e) => {
+    setSearchInputValue(e.target.value);
+    
+    // 如果输入为空，重置搜索
+    if (e.target.value === '') {
+      setSearchQuery('');
+    }
+  };
+  
+  // 处理搜索表单提交（回车键）
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    executeSearch();
   };
   
   // 清理定时器
@@ -53,6 +67,21 @@ const HistoryViewer = () => {
       }
     };
   }, []);
+  
+  // 复制提示词功能
+  const handleCopyPrompt = (prompt, sessionId) => {
+    navigator.clipboard.writeText(prompt)
+      .then(() => {
+        setCopiedPrompt(sessionId);
+        setTimeout(() => {
+          setCopiedPrompt(null);
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('复制失败:', err);
+        alert('复制提示词失败');
+      });
+  };
   
   // 计算分页
   const indexOfLastSession = currentPage * sessionsPerPage;
@@ -162,24 +191,33 @@ const HistoryViewer = () => {
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-        <div className="relative flex-grow max-w-md">
-          <input
-            type="text"
-            placeholder="搜索提示词..."
-            className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pl-10"
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            {isSearching ? (
-              <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-blue-500 rounded-full"></div>
-            ) : (
+        <form onSubmit={handleSearchSubmit} className="flex-grow max-w-md flex">
+          <div className="relative flex-grow">
+            <input
+              type="text"
+              placeholder="搜索提示词..."
+              className="w-full px-4 py-2 border border-gray-300 rounded-l-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pl-10"
+              value={searchInputValue}
+              onChange={handleInputChange}
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
               </svg>
-            )}
+            </div>
           </div>
-        </div>
+          <button
+            type="submit"
+            disabled={isSearching}
+            className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
+          >
+            {isSearching ? (
+              <div className="animate-spin h-5 w-5 border-t-2 border-b-2 border-white rounded-full"></div>
+            ) : (
+              <span>搜索</span>
+            )}
+          </button>
+        </form>
         
         {showClearConfirm ? (
           <div className="flex items-center space-x-2">
@@ -225,8 +263,35 @@ const HistoryViewer = () => {
               <div key={session.id} className="bg-white rounded-lg shadow-md overflow-hidden">
                 <div className="p-4 border-b">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-medium mb-1">{session.prompt}</div>
+                    <div className="w-full pr-10">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="font-medium mr-2 flex-grow">{session.prompt}</div>
+                        <button
+                          onClick={() => handleCopyPrompt(session.prompt, session.id)}
+                          className={`flex items-center text-sm px-2 py-1 rounded ${
+                            copiedPrompt === session.id 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                          title="复制提示词"
+                        >
+                          {copiedPrompt === session.id ? (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              <span>已复制</span>
+                            </>
+                          ) : (
+                            <>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                              </svg>
+                              <span>复制</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                       <div className="text-sm text-gray-500">
                         {new Date(session.timestamp).toLocaleString()} · {session.results.length}张图像
                         {session.ratio && ` · 画面尺寸: ${session.ratio}`}
@@ -263,7 +328,7 @@ const HistoryViewer = () => {
                     </div>
                     <button
                       onClick={() => removeSession(session.id)}
-                      className="text-gray-400 hover:text-red-500"
+                      className="text-gray-400 hover:text-red-500 absolute top-4 right-4"
                       title="删除此记录"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from '../components/Header';
 import SettingsForm from '../components/SettingsForm';
+import NotificationTester from '../components/NotificationTester';
 
 const Settings = () => {
   return (
@@ -11,6 +12,8 @@ const Settings = () => {
         <h1 className="text-3xl font-bold text-center mb-8">设置</h1>
         
         <div className="max-w-2xl mx-auto">
+          <NotificationTester />
+          
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">API配置</h2>
             <p className="text-gray-600 mb-6">

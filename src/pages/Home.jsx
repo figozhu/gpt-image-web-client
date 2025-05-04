@@ -6,10 +6,16 @@ import ImageGrid from '../components/ImageGrid';
 import { useConfig } from '../contexts/ConfigContext';
 import { useHistory } from '../contexts/HistoryContext';
 import { generateBatch } from '../services/api';
+import { 
+  requestNotificationPermission, 
+  showNotification, 
+  getNotificationPermission, 
+  isNotificationSupported 
+} from '../services/notification';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { config } = useConfig();
+  const { config, updateNotificationPermission } = useConfig();
   const { addSession } = useHistory();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -18,9 +24,26 @@ const Home = () => {
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
   const [currentBatchSize, setCurrentBatchSize] = useState(config.batchSize || 4);
+  const [showPermissionBtn, setShowPermissionBtn] = useState(false);
   
   // 检查API设置
   const isConfigValid = config.apiEndpoint && config.apiKey;
+  
+  // 初始化检查通知权限
+  useEffect(() => {
+    // 检查通知权限状态
+    const checkNotificationPermission = () => {
+      const permission = getNotificationPermission();
+      // 如果浏览器支持通知且权限状态为默认（未设置）或已被拒绝，显示权限请求按钮
+      setShowPermissionBtn(
+        isNotificationSupported() && 
+        (permission === 'default' || permission === 'denied') && 
+        config.notificationEnabled !== false
+      );
+    };
+    
+    checkNotificationPermission();
+  }, [config.notificationEnabled]);
   
   // 重置错误消息
   useEffect(() => {
@@ -32,6 +55,13 @@ const Home = () => {
       return () => clearTimeout(timer);
     }
   }, [error]);
+  
+  // 处理通知权限申请
+  const handleRequestPermission = async () => {
+    const permission = await requestNotificationPermission();
+    updateNotificationPermission(permission);
+    setShowPermissionBtn(permission === 'default');
+  };
   
   // 处理图像生成
   const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64Array }) => {
@@ -151,6 +181,50 @@ const Home = () => {
         }))
       });
       
+      // 如果通知功能已启用，显示生成完成通知
+      if (config.notificationEnabled !== false && processedImages.length > 0) {
+        try {
+          console.log('尝试发送通知，当前权限状态:', getNotificationPermission(), '通知功能状态:', config.notificationEnabled);
+          
+          // 检查页面可见性
+          const isPageVisible = document.visibilityState === 'visible';
+          console.log('页面是否可见:', isPageVisible);
+          
+          // 如果页面不可见，那么更需要显示通知
+          const shouldShowNotification = !isPageVisible || true; // 无论页面是否可见都显示通知
+          
+          if (shouldShowNotification) {
+            // 再次检查权限状态
+            if (getNotificationPermission() === 'granted') {
+              const notification = showNotification('图像生成完成', {
+                body: `已成功生成 ${processedImages.length} 张图像。`,
+                tag: 'image-generation',
+                requireInteraction: true,  // 通知会一直显示，直到用户关闭
+                renotify: true, // 即使有相同tag的通知，也会再次通知
+                silent: false, // 允许声音提醒
+                timestamp: Date.now() // 添加时间戳
+              });
+              
+              console.log('通知发送成功:', !!notification);
+              
+              // 如果通知发送失败，在页面上显示一个提示
+              if (!notification) {
+                setError('尝试发送通知失败，请检查浏览器通知设置');
+                setTimeout(() => setError(null), 3000);
+              }
+            } else {
+              console.log('通知权限未授予，当前状态:', getNotificationPermission());
+            }
+          } else {
+            console.log('页面可见，无需显示通知');
+          }
+        } catch (notificationError) {
+          console.error('发送通知时出错:', notificationError);
+        }
+      } else {
+        console.log('未发送通知，通知功能状态:', config.notificationEnabled, '图片数量:', processedImages.length);
+      }
+      
     } catch (err) {
       setError(err.message || '图像生成过程中发生错误');
       console.error('生成错误:', err);
@@ -222,6 +296,27 @@ const Home = () => {
       
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold text-center mb-8">GPT图像生成器</h1>
+        
+        {showPermissionBtn && (
+          <div className="max-w-xl mx-auto mb-6 bg-blue-50 p-4 rounded-md border border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm text-blue-800 font-medium">
+                启用浏览器通知，在图像生成完成时立即收到提醒
+              </div>
+              <button 
+                onClick={handleRequestPermission}
+                className="bg-blue-600 text-white py-1 px-4 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {getNotificationPermission() === 'denied' ? '重新授予权限' : '允许通知'}
+              </button>
+            </div>
+            {getNotificationPermission() === 'denied' && (
+              <p className="text-xs text-red-600">
+                您已拒绝通知权限。请在浏览器设置中重新开启通知权限，或点击上方按钮再次尝试。
+              </p>
+            )}
+          </div>
+        )}
         
         {!isConfigValid && (
           <div className="max-w-xl mx-auto mb-6 bg-yellow-50 p-4 rounded-md text-yellow-800 text-sm border border-yellow-200">

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useConfig } from '../contexts/ConfigContext';
 import { deobfuscateApiKey, obfuscateApiKey } from '../services/storage';
+import { requestNotificationPermission, isNotificationSupported } from '../services/notification';
 
 const SettingsForm = () => {
-  const { config, updateConfig } = useConfig();
+  const { config, updateConfig, notificationPermission, updateNotificationPermission } = useConfig();
   
   const [formData, setFormData] = useState({
     apiEndpoint: '',
@@ -11,7 +12,8 @@ const SettingsForm = () => {
     batchSize: 4,
     useProxy: false,
     proxyUrl: '',
-    model: 'gpt-4o-image-vip'
+    model: 'gpt-4o-image-vip',
+    notificationEnabled: true
   });
   
   const [showApiKey, setShowApiKey] = useState(false);
@@ -25,7 +27,8 @@ const SettingsForm = () => {
       batchSize: config.batchSize || 4,
       useProxy: config.useProxy || false,
       proxyUrl: config.proxyUrl || '',
-      model: config.model || 'gpt-4o-image-vip'
+      model: config.model || 'gpt-4o-image-vip',
+      notificationEnabled: config.notificationEnabled !== false
     });
   }, [config]);
   
@@ -40,7 +43,8 @@ const SettingsForm = () => {
       batchSize: formData.batchSize,
       useProxy: formData.useProxy,
       proxyUrl: formData.proxyUrl,
-      model: formData.model
+      model: formData.model,
+      notificationEnabled: formData.notificationEnabled
     };
     
     // 只有当API密钥被修改时才更新它
@@ -76,9 +80,53 @@ const SettingsForm = () => {
       batchSize: config.batchSize || 4,
       useProxy: config.useProxy || false,
       proxyUrl: config.proxyUrl || '',
-      model: config.model || 'gpt-4o-image-vip'
+      model: config.model || 'gpt-4o-image-vip',
+      notificationEnabled: config.notificationEnabled !== false
     });
     setShowApiKey(false);
+  };
+  
+  // 请求通知权限
+  const handleRequestPermission = async () => {
+    const permission = await requestNotificationPermission();
+    updateNotificationPermission(permission);
+  };
+  
+  // 获取通知权限状态显示信息
+  const getPermissionStatusText = () => {
+    switch (notificationPermission) {
+      case 'granted':
+        return '已授权';
+      case 'denied':
+        return '已拒绝';
+      case 'default':
+        return '未设置';
+      case 'unsupported':
+        return '浏览器不支持';
+      default:
+        return '未知状态';
+    }
+  };
+  
+  // 获取通知权限状态的颜色类
+  const getPermissionStatusColor = () => {
+    switch (notificationPermission) {
+      case 'granted':
+        return 'text-green-600';
+      case 'denied':
+        return 'text-red-600';
+      case 'default':
+        return 'text-yellow-600';
+      case 'unsupported':
+        return 'text-gray-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+  
+  // 判断是否可以请求权限
+  const canRequestPermission = () => {
+    return isNotificationSupported() && notificationPermission !== 'granted';
   };
   
   return (
@@ -206,6 +254,50 @@ const SettingsForm = () => {
                 代理URL将用于解决CORS限制问题。您可以使用免费的公共CORS代理服务。
               </p>
             </div>
+          )}
+        </div>
+        
+        <div className="space-y-4 border-t pt-4">
+          <h3 className="text-md font-medium text-gray-700">通知设置</h3>
+          
+          <div className="flex items-center mb-2">
+            <input
+              type="checkbox"
+              id="notificationEnabled"
+              name="notificationEnabled"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              checked={formData.notificationEnabled}
+              onChange={handleChange}
+              disabled={!isNotificationSupported()}
+            />
+            <label htmlFor="notificationEnabled" className="ml-2 block text-sm text-gray-700">
+              启用浏览器通知（图像生成完成后通知）
+            </label>
+          </div>
+          
+          <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
+            <div>
+              <p className="text-sm text-gray-700">当前通知权限状态:</p>
+              <p className={`font-medium ${getPermissionStatusColor()}`}>
+                {getPermissionStatusText()}
+              </p>
+            </div>
+            
+            {canRequestPermission() && (
+              <button
+                type="button"
+                onClick={handleRequestPermission}
+                className="bg-blue-600 text-white py-1 px-3 text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                申请通知权限
+              </button>
+            )}
+          </div>
+          
+          {!isNotificationSupported() && (
+            <p className="text-xs text-red-500">
+              您的浏览器不支持通知功能。请使用支持Web通知API的现代浏览器。
+            </p>
           )}
         </div>
         

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { initDB, saveSession, getSessions, deleteSession, clearAllSessions } from '../services/db';
+import { initDB, saveSession, getSessions, deleteSession, clearAllSessions, searchSessionsByKeyword } from '../services/db';
 
 const HistoryContext = createContext();
 
@@ -8,6 +8,7 @@ export const useHistory = () => useContext(HistoryContext);
 export const HistoryProvider = ({ children }) => {
   const [sessions, setSessions] = useState([]);
   const [dbReady, setDbReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // 初始化数据库
   useEffect(() => {
@@ -31,11 +32,37 @@ export const HistoryProvider = ({ children }) => {
   
   // 加载所有会话
   const loadSessions = async () => {
+    setLoading(true);
     try {
       const result = await getSessions();
       setSessions(result);
     } catch (error) {
       console.error('Failed to load sessions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 搜索会话
+  const searchSessions = async (query) => {
+    setLoading(true);
+    try {
+      if (!query || query.trim() === '') {
+        // 如果查询为空，加载所有会话
+        const result = await getSessions();
+        setSessions(result);
+        return result;
+      } else {
+        // 搜索匹配的会话，但不更新主sessions状态
+        const result = await searchSessionsByKeyword(query);
+        // 只更新过滤后的会话状态，返回给组件处理
+        return result;
+      }
+    } catch (error) {
+      console.error('Failed to search sessions:', error);
+      return [];
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -71,12 +98,15 @@ export const HistoryProvider = ({ children }) => {
   
   return (
     <HistoryContext.Provider 
-      value={{
-        sessions,
-        addSession,
-        removeSession,
-        clearSessions,
-        dbReady
+      value={{ 
+        sessions, 
+        loading, 
+        dbReady, 
+        addSession, 
+        removeSession, 
+        clearSessions, 
+        loadSessions,
+        searchSessions 
       }}
     >
       {children}

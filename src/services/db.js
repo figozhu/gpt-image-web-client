@@ -27,6 +27,8 @@ export function initDB() {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('timestamp', 'timestamp', { unique: false });
+        // 添加提示词索引，用于搜索
+        store.createIndex('prompt', 'prompt', { unique: false });
       }
     };
   });
@@ -119,6 +121,55 @@ export async function getSessions() {
         resolve(sessions);
       }
     };
+  });
+}
+
+/**
+ * 根据关键词搜索会话
+ * @param {string} keyword - 搜索关键词
+ * @returns {Promise<Array>} - 包含匹配会话的Promise
+ */
+export async function searchSessionsByKeyword(keyword) {
+  console.log(`正在搜索关键词: "${keyword}"`);
+  
+  if (!keyword || keyword.trim() === '') {
+    console.log('关键词为空，返回所有会话');
+    return await getSessions();
+  }
+  
+  const db = await getDB();
+  return new Promise((resolve, reject) => {
+    try {
+      const transaction = db.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('timestamp');
+      const request = index.openCursor(null, 'prev'); // 按时间戳降序
+      
+      const sessions = [];
+      const lowerKeyword = keyword.toLowerCase();
+      
+      request.onerror = (event) => {
+        console.error('搜索会话失败：', event.target.error);
+        reject('搜索会话失败：' + event.target.error);
+      };
+      
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const session = cursor.value;
+          if (session.prompt && session.prompt.toLowerCase().includes(lowerKeyword)) {
+            sessions.push(session);
+          }
+          cursor.continue();
+        } else {
+          console.log(`搜索完成，找到 ${sessions.length} 条匹配记录`);
+          resolve(sessions);
+        }
+      };
+    } catch (error) {
+      console.error('搜索过程中出现错误：', error);
+      reject(error);
+    }
   });
 }
 

@@ -165,7 +165,7 @@ const SettingsForm = () => {
             id="batchSize"
             name="batchSize"
             min="1"
-            max="10"
+            max="4"
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
             value={formData.batchSize}
             onChange={handleChange}

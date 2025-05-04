@@ -249,7 +249,7 @@ const PromptInput = ({ onGenerate, isLoading }) => {
               id="batchSize"
               type="range"
               min="1"
-              max="10"
+              max="4"
               value={batchSize}
               onChange={(e) => setBatchSize(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
@@ -257,8 +257,9 @@ const PromptInput = ({ onGenerate, isLoading }) => {
             />
             <div className="flex justify-between text-xs text-gray-500">
               <span>1</span>
-              <span>5</span>
-              <span>10</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
             </div>
           </div>
           

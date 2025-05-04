@@ -23,7 +23,7 @@ const ImageGrid = ({ images, isLoading }) => {
   // 在加载中时显示骨架屏
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {Array.from({ length: 3 }).map((_, index) => (
           <div 
             key={`skeleton-${index}`}
@@ -46,7 +46,7 @@ const ImageGrid = ({ images, isLoading }) => {
   
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
         {images.map((image, index) => (
           <div 
             key={`image-${index}`}

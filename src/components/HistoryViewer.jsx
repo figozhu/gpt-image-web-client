@@ -12,6 +12,9 @@ const HistoryViewer = () => {
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [expandedImage, setExpandedImage] = useState(null);
   const [copiedPrompt, setCopiedPrompt] = useState(null);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [isComparing, setIsComparing] = useState(false);
+  const [expandedSessionId, setExpandedSessionId] = useState(null);
   const searchTimeoutRef = useRef(null);
   const sessionsPerPage = 5;
   
@@ -102,12 +105,59 @@ const HistoryViewer = () => {
   
   // 处理图片展开
   const handleExpand = (imageUrl) => {
+    // 如果有选择的图片，则不展开单张图片
+    if (selectedImages.length > 0) {
+      return;
+    }
     setExpandedImage(imageUrl);
   };
   
   // 关闭展开的图片
   const handleClose = () => {
     setExpandedImage(null);
+    setIsComparing(false);
+  };
+  
+  // 处理图片选择
+  const handleSelect = (sessionId, imageUrl, event) => {
+    // 如果提供了事件，阻止冒泡，以便不会触发展开
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    const imageInfo = { sessionId, url: imageUrl };
+    
+    setSelectedImages(prev => {
+      // 如果图片已经被选中，则移除它
+      if (prev.some(img => img.url === imageUrl)) {
+        return prev.filter(img => img.url !== imageUrl);
+      }
+      
+      // 如果已经选择了两张图片，替换最早选择的那张
+      if (prev.length >= 2) {
+        return [...prev.slice(1), imageInfo];
+      }
+      
+      // 否则，添加到选择列表
+      return [...prev, imageInfo];
+    });
+  };
+  
+  // 处理图片点击
+  const handleImageClick = (sessionId, imageUrl, event) => {
+    // 如果是批量选择模式（已经选择了一张图片），则选择该图片而不是展开
+    if (selectedImages.length > 0) {
+      handleSelect(sessionId, imageUrl, event);
+    } else {
+      handleExpand(imageUrl);
+    }
+  };
+  
+  // 开始图片对比
+  const startComparing = () => {
+    if (selectedImages.length === 2) {
+      setIsComparing(true);
+    }
   };
   
   // 页面切换
@@ -248,6 +298,46 @@ const HistoryViewer = () => {
         )}
       </div>
       
+      {/* 图片对比工具栏 */}
+      {selectedImages.length > 0 && (
+        <div className="sticky top-0 z-10 px-4 py-3 mb-4 bg-white rounded-lg shadow-md">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <span className="text-sm font-medium text-gray-700">已选择 {selectedImages.length}/2 张图片进行对比</span>
+            </div>
+            <div className="flex space-x-2">
+              {selectedImages.length === 2 ? (
+                <button
+                  onClick={startComparing}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+                >
+                  对比选中图片
+                </button>
+              ) : (
+                <button
+                  className="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed text-sm font-medium"
+                  disabled
+                >
+                  请选择2张图片
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedImages([])}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium"
+              >
+                清除选择
+              </button>
+            </div>
+          </div>
+          
+          {selectedImages.length === 1 && (
+            <div className="text-xs text-gray-500 mt-1">
+              <p>请再选择一张图片完成对比选择。</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 没有搜索结果时的提示 */}
       {searchQuery && filteredSessions.length === 0 ? (
         <div className="text-center p-8 text-gray-500 bg-white rounded-lg shadow-sm">
@@ -340,25 +430,38 @@ const HistoryViewer = () => {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 p-2">
                   {session.results.map((result, index) => (
-                    <div key={`${session.id}-${index}`} className="relative group">
+                    <div 
+                      key={`${session.id}-${index}`} 
+                      className={`relative group ${
+                        selectedImages.some(img => img.url === result.imageUrl) ? 'ring-2 ring-blue-500 rounded' : ''
+                      }`}
+                    >
                       <img 
                         src={result.imageUrl} 
                         alt={`Generated image ${index + 1}`}
                         className="w-full h-40 object-cover rounded cursor-pointer"
-                        onClick={() => handleExpand(result.imageUrl)}
+                        onClick={(e) => handleImageClick(session.id, result.imageUrl, e)}
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iMTIiIHk9IjEyIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYWFhYWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSI+SW1hZ2UgRXJyb3I8L3RleHQ+PC9zdmc+';
                         }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      
+                      {/* 选择指示器 */}
+                      {selectedImages.some(img => img.url === result.imageUrl) && (
+                        <div className="absolute top-2 left-2 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md">
+                          {selectedImages.findIndex(img => img.url === result.imageUrl) + 1}
+                        </div>
+                      )}
+                      
+                      <div className={`absolute inset-0 bg-black bg-opacity-0 ${selectedImages.some(img => img.url === result.imageUrl) ? 'bg-opacity-20' : 'group-hover:bg-opacity-30'} transition-opacity duration-200 flex items-center justify-center ${selectedImages.some(img => img.url === result.imageUrl) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <div className="flex space-x-2">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDownload(result.imageUrl, session.id, index);
                             }}
-                            className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100"
+                            className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 shadow-md"
                             title="下载图片"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -370,12 +473,29 @@ const HistoryViewer = () => {
                               e.stopPropagation();
                               handleExpand(result.imageUrl);
                             }}
-                            className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100"
+                            className="bg-white text-gray-800 p-2 rounded-full hover:bg-gray-100 shadow-md"
                             title="查看大图"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
+                          </button>
+                          <button
+                            onClick={(e) => handleSelect(session.id, result.imageUrl, e)}
+                            className={`bg-white p-2 rounded-full hover:bg-gray-100 shadow-md ${
+                              selectedImages.some(img => img.url === result.imageUrl) ? 'text-blue-600 bg-blue-50' : 'text-gray-800'
+                            }`}
+                            title={selectedImages.some(img => img.url === result.imageUrl) ? "取消选择" : "选择进行对比"}
+                          >
+                            {selectedImages.some(img => img.url === result.imageUrl) ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                              </svg>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -391,8 +511,8 @@ const HistoryViewer = () => {
         </>
       )}
       
-      {/* 图片查看模态框 */}
-      {expandedImage && (
+      {/* 单图片查看模态框 */}
+      {expandedImage && !isComparing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75" onClick={handleClose}>
           <div className="relative max-w-4xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
             <button 
@@ -418,6 +538,54 @@ const HistoryViewer = () => {
                 </svg>
                 <span>下载图片</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 图片对比模态框 */}
+      {isComparing && selectedImages.length === 2 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90" onClick={handleClose}>
+          <div className="relative w-full max-w-5xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2 z-10"
+              onClick={handleClose}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
+              <div className="flex-1 bg-black bg-opacity-50 p-2 rounded">
+                <img 
+                  src={selectedImages[0].url} 
+                  alt="比较图片 1" 
+                  className="max-w-full max-h-[70vh] mx-auto object-contain"
+                />
+                <div className="mt-2 text-center">
+                  <button
+                    onClick={() => handleDownload(selectedImages[0].url, selectedImages[0].sessionId, 'compare-1')}
+                    className="bg-white text-gray-800 px-4 py-1 rounded text-sm"
+                  >
+                    下载图片
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 bg-black bg-opacity-50 p-2 rounded">
+                <img 
+                  src={selectedImages[1].url} 
+                  alt="比较图片 2" 
+                  className="max-w-full max-h-[70vh] mx-auto object-contain"
+                />
+                <div className="mt-2 text-center">
+                  <button
+                    onClick={() => handleDownload(selectedImages[1].url, selectedImages[1].sessionId, 'compare-2')}
+                    className="bg-white text-gray-800 px-4 py-1 rounded text-sm"
+                  >
+                    下载图片
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

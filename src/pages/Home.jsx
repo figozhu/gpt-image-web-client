@@ -15,7 +15,6 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [generatedImages, setGeneratedImages] = useState([]);
-  const [progress, setProgress] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
   
@@ -44,7 +43,6 @@ const Home = () => {
     
     setIsLoading(true);
     setError(null);
-    setProgress(0);
     setCurrentPrompt(prompt);
     setCurrentImageBase64Array(imageBase64Array || []);
     
@@ -81,9 +79,6 @@ const Home = () => {
           
           const batchResults = await Promise.allSettled(batchPromises);
           results.push(...batchResults);
-          
-          // 更新进度
-          setProgress(Math.floor((results.length / count) * 100));
         }
         
         return results;
@@ -159,7 +154,6 @@ const Home = () => {
       console.error('生成错误:', err);
     } finally {
       setIsLoading(false);
-      setProgress(0);
     }
   };
   
@@ -250,12 +244,9 @@ const Home = () => {
         
         {isLoading && (
           <div className="max-w-xl mx-auto mt-6 bg-blue-50 p-4 rounded-md border border-blue-200">
-            <div className="mb-2 flex justify-between items-center">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
               <span className="text-blue-800 text-sm font-medium">正在生成图像...</span>
-              <span className="text-blue-800 text-sm">{progress}%</span>
-            </div>
-            <div className="w-full bg-blue-200 rounded-full h-2.5">
-              <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
             </div>
             <p className="mt-2 text-sm text-gray-600 line-clamp-1">
               提示词: {currentPrompt}

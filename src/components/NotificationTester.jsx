@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   requestNotificationPermission, 
   showNotification, 
   getNotificationPermission, 
-  isNotificationSupported 
+  isNotificationSupported,
+  isServiceWorkerSupported,
+  cleanupServiceWorker
 } from '../services/notification';
 import { useConfig } from '../contexts/ConfigContext';
 
 const NotificationTester = () => {
   const { config, updateNotificationPermission } = useConfig();
+  const [swStatus, setSwStatus] = useState('');
   
   // 获取通知权限状态显示信息
   const getPermissionStatusText = () => {
@@ -60,6 +63,42 @@ const NotificationTester = () => {
     }
   };
   
+  // 卸载Service Worker
+  const handleUnregisterSW = async () => {
+    if (!isServiceWorkerSupported()) {
+      setSwStatus('浏览器不支持Service Worker');
+      return;
+    }
+    
+    try {
+      // 先发送清理信号
+      cleanupServiceWorker();
+      
+      // 获取所有已注册的Service Worker
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      
+      if (registrations.length === 0) {
+        setSwStatus('没有活动的Service Worker');
+        return;
+      }
+      
+      // 卸载所有Service Worker
+      let unregisteredCount = 0;
+      for (const registration of registrations) {
+        const success = await registration.unregister();
+        if (success) {
+          unregisteredCount++;
+        }
+      }
+      
+      setSwStatus(`已卸载 ${unregisteredCount} 个Service Worker`);
+      setTimeout(() => setSwStatus(''), 3000);
+    } catch (error) {
+      console.error('卸载Service Worker失败:', error);
+      setSwStatus('卸载Service Worker失败');
+    }
+  };
+  
   // 如果浏览器不支持通知功能，或通知功能已被用户禁用，显示相应提示
   if (!isNotificationSupported() || config.notificationEnabled === false) {
     return null;
@@ -108,6 +147,27 @@ const NotificationTester = () => {
         <p className="text-xs text-yellow-600 mt-1">
           请点击"授予权限"按钮以启用通知功能，这样在图像生成完成时可以收到提醒。
         </p>
+      )}
+      
+      {/* Service Worker管理部分 */}
+      {isServiceWorkerSupported() && (
+        <div className="mt-4 pt-3 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600">Service Worker状态:</p>
+            <button
+              onClick={handleUnregisterSW}
+              className="bg-red-600 text-white py-1 px-3 text-sm rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              停止通知服务
+            </button>
+          </div>
+          {swStatus && (
+            <p className="text-xs text-gray-600 mt-1">{swStatus}</p>
+          )}
+          <p className="text-xs text-gray-500 mt-2">
+            如果您发现通知问题或任务栏异常，点击"停止通知服务"按钮可以重置通知服务。
+          </p>
+        </div>
       )}
     </div>
   );

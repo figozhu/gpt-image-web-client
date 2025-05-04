@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- 背景 -->
+  <rect width="64" height="64" rx="12" fill="url(#bgGradient)" />
+
+  <!-- 图像图标区域 -->
+  <rect x="8" y="10" width="28" height="22" rx="4" fill="#ffffff" />
+  <circle cx="14" cy="16" r="2.5" fill="#3A86FF" />
+  <path d="M10 30l6-6 4 4 6-6 8 10H10z" fill="#FB5607"/>
+
+  <!-- 彩色画笔图标 -->
+  <path d="M44 14c4 0 6 3 6 7s-2 7-6 7-6-3-6-7 2-7 6-7z" fill="#FFB703"/>
+  <path d="M42 28l-6 10 2 2 10-6z" fill="#8338EC"/>
+
+  <!-- GPT Image 字体 Logo -->
+  <text x="8" y="54" font-family="Segoe UI, Trebuchet MS, sans-serif" font-weight="bold" font-size="10" fill="#ffffff">
+    GPT <tspan fill="#FF006E">Image</tspan>
+  </text>
+
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#10A37F"/>
+      <stop offset="100%" stop-color="#06D6A0"/>
+    </linearGradient>
+  </defs>
+</svg>

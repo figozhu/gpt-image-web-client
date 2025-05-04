@@ -123,4 +123,33 @@ export const showNotification = (title, options = {}) => {
     console.error('显示通知时出错:', error);
     return false;
   }
-}; 
+};
+
+// 发送清理信号给Service Worker
+export const cleanupServiceWorker = () => {
+  if (!isServiceWorkerSupported()) {
+    return false;
+  }
+  
+  if (navigator.serviceWorker.controller) {
+    console.log('发送清理信号给Service Worker');
+    navigator.serviceWorker.controller.postMessage({ type: 'CLEAN_UP' });
+    return true;
+  }
+  
+  return false;
+};
+
+// 监听页面关闭事件，清理Service Worker
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    cleanupServiceWorker();
+  });
+  
+  // 也监听visibilitychange事件，在页面切换到隐藏状态时发送清理信号
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      cleanupServiceWorker();
+    }
+  });
+} 

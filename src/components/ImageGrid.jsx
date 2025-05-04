@@ -213,7 +213,7 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
             
             <div className="p-3">
               <div className="text-sm text-gray-500">
-                生成时间: {image.responseTime ? new Date(image.responseTime).toLocaleString() : '未知'}
+                生成时间: {image.timestamp ? new Date(image.timestamp).toLocaleString() : '未知'}
               </div>
             </div>
           </div>

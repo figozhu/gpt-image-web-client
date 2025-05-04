@@ -54,7 +54,8 @@ function getDB() {
  * 保存会话到数据库
  * @param {Object} session - 会话对象 
  * @param {string} session.prompt - 提示词
- * @param {string} [session.imageBase64] - 可选的图片base64编码
+ * @param {string} [session.imageBase64] - 可选的单张图片base64编码（向后兼容）
+ * @param {Array<string>} [session.imageBase64Array] - 可选的图片base64编码数组
  * @param {number} session.batchSize - 批量大小
  * @param {string} [session.ratio] - 可选的画面比例
  * @param {Array} session.results - 生成结果
@@ -72,6 +73,11 @@ export async function saveSession(session) {
     }
     if (!session.timestamp) {
       session.timestamp = new Date().toISOString();
+    }
+    
+    // 处理图片数组（向后兼容）
+    if (session.imageBase64 && !session.imageBase64Array) {
+      session.imageBase64Array = [session.imageBase64];
     }
     
     const request = store.put(session);

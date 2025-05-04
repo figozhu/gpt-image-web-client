@@ -90,7 +90,24 @@ const HistoryViewer = () => {
                   </div>
                   
                   {/* 显示上传的参考图片 */}
-                  {session.imageBase64 && (
+                  {session.imageBase64Array && session.imageBase64Array.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-sm text-gray-500 mb-1">参考图片 ({session.imageBase64Array.length}张)：</div>
+                      <div className="flex flex-wrap gap-2">
+                        {session.imageBase64Array.map((base64, imgIndex) => (
+                          <img 
+                            key={imgIndex}
+                            src={`data:image/jpeg;base64,${base64}`} 
+                            alt={`参考图片 ${imgIndex + 1}`} 
+                            className="h-20 w-20 object-cover border border-gray-200 rounded"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 向后兼容，支持旧版的单张图片存储 */}
+                  {session.imageBase64 && !session.imageBase64Array && (
                     <div className="mt-3">
                       <div className="text-sm text-gray-500 mb-1">参考图片：</div>
                       <img 

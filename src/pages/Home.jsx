@@ -17,7 +17,7 @@ const Home = () => {
   const [generatedImages, setGeneratedImages] = useState([]);
   const [progress, setProgress] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState('');
-  const [currentImageBase64, setCurrentImageBase64] = useState(null);
+  const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
   
   // 检查API设置
   const isConfigValid = config.apiEndpoint && config.apiKey;
@@ -34,7 +34,7 @@ const Home = () => {
   }, [error]);
   
   // 处理图像生成
-  const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64 }) => {
+  const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64Array }) => {
     // 检查配置
     if (!isConfigValid) {
       setError('请先在设置中配置API端点和API密钥');
@@ -46,7 +46,7 @@ const Home = () => {
     setError(null);
     setProgress(0);
     setCurrentPrompt(prompt);
-    setCurrentImageBase64(imageBase64);
+    setCurrentImageBase64Array(imageBase64Array || []);
     
     try {
       // 开始时间
@@ -68,7 +68,7 @@ const Home = () => {
             batchPromises.push(
               generateImage(
                 prompt,
-                imageBase64,
+                imageBase64Array,
                 config.apiKey,
                 config.apiEndpoint,
                 config.useProxy,
@@ -142,7 +142,7 @@ const Home = () => {
         id: `session-${Date.now()}`,
         timestamp: startTime.toISOString(),
         prompt: prompt,
-        imageBase64: imageBase64,
+        imageBase64Array: imageBase64Array,
         batchSize: batchSize,
         ratio: ratio,
         results: processedImages.map(img => ({
@@ -162,7 +162,7 @@ const Home = () => {
   };
   
   // 辅助函数：调用单个图像生成API
-  const generateImage = async (prompt, imageBase64, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) => {
+  const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) => {
     const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
     
     // 如果提供了比例，将其添加到提示词内容中
@@ -179,13 +179,15 @@ const Home = () => {
       }
     ];
     
-    // 如果提供了图片，添加到content数组
-    if (imageBase64) {
-      contentArray.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${imageBase64}`
-        }
+    // 如果提供了图片数组，添加到content数组
+    if (imageBase64Array && imageBase64Array.length > 0) {
+      imageBase64Array.forEach(imageBase64 => {
+        contentArray.push({
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${imageBase64}`
+          }
+        });
       });
     }
     
@@ -256,9 +258,9 @@ const Home = () => {
             <p className="mt-2 text-sm text-gray-600 line-clamp-1">
               提示词: {currentPrompt}
             </p>
-            {currentImageBase64 && (
+            {currentImageBase64Array && currentImageBase64Array.length > 0 && (
               <p className="mt-1 text-sm text-gray-600">
-                已上传参考图片
+                已上传 {currentImageBase64Array.length} 张参考图片
               </p>
             )}
           </div>

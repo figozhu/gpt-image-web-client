@@ -1,7 +1,7 @@
 /**
  * 生成单张图像
  * @param {string} prompt - 图像提示词
- * @param {string} imageBase64 - 可选的base64编码图片
+ * @param {Array<string>} imageBase64Array - 可选的base64编码图片数组
  * @param {string} apiKey - API密钥
  * @param {string} apiEndpoint - API端点
  * @param {boolean} useProxy - 是否使用代理
@@ -9,7 +9,7 @@
  * @param {string} ratio - 可选的画面尺寸比例（如："1:1", "3:2", "2:3"）
  * @returns {Promise} - API响应
  */
-export async function generateImage(prompt, imageBase64, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
+export async function generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
   const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
   
   try {
@@ -27,13 +27,15 @@ export async function generateImage(prompt, imageBase64, apiKey, apiEndpoint, us
       }
     ];
     
-    // 如果提供了图片，添加到content数组
-    if (imageBase64) {
-      contentArray.push({
-        type: "image_url",
-        image_url: {
-          url: `data:image/jpeg;base64,${imageBase64}`
-        }
+    // 如果提供了图片数组，添加到content数组
+    if (imageBase64Array && imageBase64Array.length > 0) {
+      imageBase64Array.forEach(imageBase64 => {
+        contentArray.push({
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${imageBase64}`
+          }
+        });
       });
     }
     
@@ -73,7 +75,7 @@ export async function generateImage(prompt, imageBase64, apiKey, apiEndpoint, us
 /**
  * 批量生成图像
  * @param {string} prompt - 图像提示词
- * @param {string} imageBase64 - 可选的base64编码图片
+ * @param {Array<string>} imageBase64Array - 可选的base64编码图片数组
  * @param {number} count - 生成数量
  * @param {string} apiKey - API密钥
  * @param {string} apiEndpoint - API端点
@@ -82,10 +84,10 @@ export async function generateImage(prompt, imageBase64, apiKey, apiEndpoint, us
  * @param {string} ratio - 可选的画面尺寸比例
  * @returns {Promise} - 所有请求的Promise.all结果
  */
-export async function generateBatch(prompt, imageBase64, count, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
+export async function generateBatch(prompt, imageBase64Array, count, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) {
   const promises = [];
   for (let i = 0; i < count; i++) {
-    promises.push(generateImage(prompt, imageBase64, apiKey, apiEndpoint, useProxy, proxyUrl, ratio));
+    promises.push(generateImage(prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio));
   }
   
   return await Promise.all(promises);

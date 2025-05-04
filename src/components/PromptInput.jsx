@@ -35,8 +35,8 @@ const PromptInput = ({ onGenerate, isLoading }) => {
   const [batchSize, setBatchSize] = useState(config.batchSize || 4);
   const [showTemplates, setShowTemplates] = useState(false);
   const [ratio, setRatio] = useState("");
-  const [uploadedImage, setUploadedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   
   // 当配置更改时更新batchSize
   useEffect(() => {
@@ -53,7 +53,7 @@ const PromptInput = ({ onGenerate, isLoading }) => {
       prompt: prompt.trim(),
       batchSize,
       ratio,
-      imageBase64: uploadedImage
+      imageBase64Array: uploadedImages
     });
   };
   
@@ -63,29 +63,45 @@ const PromptInput = ({ onGenerate, isLoading }) => {
   };
   
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
     
-    // 检查文件类型
-    const fileType = file.type;
-    if (!fileType.match('image.*')) {
-      alert('请上传图片文件');
+    // 限制上传图片数量
+    if (uploadedImages.length + files.length > 5) {
+      alert('最多上传5张图片');
       return;
     }
     
-    // 创建文件预览
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64String = event.target.result.split(',')[1];
-      setUploadedImage(base64String);
-      setImagePreview(event.target.result);
-    };
-    reader.readAsDataURL(file);
+    files.forEach(file => {
+      // 检查文件类型
+      const fileType = file.type;
+      if (!fileType.match('image.*')) {
+        alert('请上传图片文件');
+        return;
+      }
+      
+      // 创建文件预览
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target.result.split(',')[1];
+        setUploadedImages(prev => [...prev, base64String]);
+        setImagePreviews(prev => [...prev, event.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // 清除文件输入，使同一个文件可以重复选择
+    e.target.value = '';
   };
   
-  const clearImage = () => {
-    setUploadedImage(null);
-    setImagePreview(null);
+  const clearImage = (index) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+  
+  const clearAllImages = () => {
+    setUploadedImages([]);
+    setImagePreviews([]);
     // 清除文件输入
     const fileInput = document.getElementById('image-upload');
     if (fileInput) fileInput.value = '';
@@ -140,48 +156,66 @@ const PromptInput = ({ onGenerate, isLoading }) => {
         
         {/* 图片上传区域 */}
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            上传参考图片 (可选)
-          </label>
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-medium text-gray-700">
+              上传参考图片 (可选，最多5张)
+            </label>
+            {uploadedImages.length > 0 && (
+              <button
+                type="button"
+                onClick={clearAllImages}
+                className="text-xs text-red-600 hover:text-red-800"
+              >
+                清除所有图片
+              </button>
+            )}
+          </div>
           <div className="flex items-center space-x-2">
             <input
               id="image-upload"
               type="file"
               accept="image/*"
+              multiple
               className="hidden"
               onChange={handleImageUpload}
-              disabled={isLoading}
+              disabled={isLoading || uploadedImages.length >= 5}
             />
             <label
               htmlFor="image-upload"
-              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded cursor-pointer text-sm flex items-center"
+              className={`px-3 py-2 rounded cursor-pointer text-sm flex items-center ${
+                uploadedImages.length >= 5 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              选择图片
+              选择图片 {uploadedImages.length > 0 ? `(${uploadedImages.length}/5)` : ''}
             </label>
-            {imagePreview && (
-              <button
-                type="button"
-                onClick={clearImage}
-                className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm flex items-center"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                移除图片
-              </button>
-            )}
           </div>
           
-          {imagePreview && (
-            <div className="mt-2">
-              <img
-                src={imagePreview}
-                alt="上传的图片预览"
-                className="max-h-32 max-w-full rounded border border-gray-300"
-              />
+          {imagePreviews.length > 0 && (
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={preview}
+                    alt={`上传的图片预览 ${index + 1}`}
+                    className="h-24 w-full object-cover rounded border border-gray-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => clearImage(index)}
+                    className="absolute top-1 right-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-full p-1"
+                    title="移除此图片"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

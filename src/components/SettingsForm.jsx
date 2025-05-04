@@ -23,14 +23,14 @@ const SettingsForm = () => {
   useEffect(() => {
     setFormData({
       apiEndpoint: config.apiEndpoint || '',
-      apiKey: config.apiKey ? '••••••••••••••••' : '',
+      apiKey: config.apiKey ? (showApiKey ? deobfuscateApiKey(config.apiKey) : '••••••••••••••••') : '',
       batchSize: config.batchSize || 4,
       useProxy: config.useProxy || false,
       proxyUrl: config.proxyUrl || '',
       model: config.model || 'gpt-4o-image-vip',
       notificationEnabled: config.notificationEnabled !== false
     });
-  }, [config]);
+  }, [config, showApiKey]);
   
   // 处理表单提交
   const handleSubmit = (e) => {
@@ -49,7 +49,7 @@ const SettingsForm = () => {
     
     // 只有当API密钥被修改时才更新它
     if (formData.apiKey && formData.apiKey !== '••••••••••••••••') {
-      updatedConfig.apiKey = formData.apiKey;
+      updatedConfig.apiKey = obfuscateApiKey(formData.apiKey);
     }
     
     // 更新配置
@@ -129,6 +129,11 @@ const SettingsForm = () => {
     return isNotificationSupported() && notificationPermission !== 'granted';
   };
   
+  // 处理显示/隐藏API密钥
+  const toggleApiKeyVisibility = () => {
+    setShowApiKey(!showApiKey);
+  };
+  
   return (
     <div className="max-w-2xl mx-auto p-4">
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow-md">
@@ -165,7 +170,7 @@ const SettingsForm = () => {
             <button
               type="button"
               className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              onClick={() => setShowApiKey(!showApiKey)}
+              onClick={toggleApiKeyVisibility}
             >
               {showApiKey ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">

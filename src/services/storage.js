@@ -47,6 +47,21 @@ export function clearConfig() {
  * @returns {string} - 混淆后的API密钥
  */
 export function obfuscateApiKey(apiKey) {
+  if (!apiKey) return '';
+  
+  // 检查是否已经是Base64格式
+  try {
+    // 尝试解码，看看是否能得到有效结果
+    atob(apiKey);
+    // 如果没有抛出异常，再检查编码后是否与原字符串相同
+    if (btoa(atob(apiKey)) === apiKey) {
+      // 可能已经是混淆后的字符串，直接返回
+      return apiKey;
+    }
+  } catch (e) {
+    // 如果解码失败，说明不是有效的Base64，需要进行混淆
+  }
+  
   // 简单的Base64编码
   return btoa(apiKey);
 }
@@ -57,11 +72,14 @@ export function obfuscateApiKey(apiKey) {
  * @returns {string} - 原始API密钥
  */
 export function deobfuscateApiKey(obfuscatedKey) {
+  if (!obfuscatedKey) return '';
+  
   try {
     // 解码Base64
     return atob(obfuscatedKey);
   } catch (error) {
     console.error('解混淆API密钥失败:', error);
-    return '';
+    // 如果无法解混淆，返回原始值
+    return obfuscatedKey;
   }
 } 

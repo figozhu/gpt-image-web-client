@@ -297,6 +297,20 @@ const Home = () => {
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold text-center mb-8">GPT图像生成器</h1>
         
+        <div className="max-w-xl mx-auto mb-6 bg-green-50 p-4 rounded-md border border-green-200">
+          <div className="flex items-start">
+            <svg className="h-5 w-5 text-green-600 mt-0.5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+              <h3 className="text-sm font-medium text-green-800">安全提示</h3>
+              <p className="mt-1 text-sm text-green-700">
+                本应用采用纯前端实现，使用LocalStorage和IndexedDB本地存储技术，您的API网址和密钥仅保存在您的浏览器中，不会上传到任何服务器。
+              </p>
+            </div>
+          </div>
+        </div>
+        
         {showPermissionBtn && (
           <div className="max-w-xl mx-auto mb-6 bg-blue-50 p-4 rounded-md border border-blue-200">
             <div className="flex items-center justify-between mb-2">

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { getNotificationPermission } from '../services/notification';
+import { obfuscateApiKey, deobfuscateApiKey } from '../services/storage';
 
 const defaultConfig = {
   apiEndpoint: "https://api.openai.com/v1/chat/completions",
@@ -36,6 +37,25 @@ export const ConfigProvider = ({ children }) => {
   
   // 更新配置并保存到LocalStorage
   const updateConfig = (newConfig) => {
+    // 确保API密钥已经被混淆
+    if (newConfig.apiKey && !newConfig.apiKey.startsWith('••••')) {
+      // 检查是否已经是混淆状态的字符串
+      let isAlreadyObfuscated = false;
+      try {
+        // 尝试解码 - 如果能成功解码，可能已经是混淆状态
+        deobfuscateApiKey(newConfig.apiKey);
+        isAlreadyObfuscated = true;
+      } catch (e) {
+        // 解码失败，可能是未混淆的原始密钥
+        isAlreadyObfuscated = false;
+      }
+      
+      // 只有在确定密钥未混淆时才进行混淆
+      if (!isAlreadyObfuscated) {
+        newConfig.apiKey = obfuscateApiKey(newConfig.apiKey);
+      }
+    }
+    
     setConfig(newConfig);
     localStorage.setItem('gptImageConfig', JSON.stringify(newConfig));
   };

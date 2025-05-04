@@ -1,26 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useConfig } from '../contexts/ConfigContext';
 
-// 预设提示模板
-const PROMPT_TEMPLATES = [
-  {
-    name: '写实风格',
-    template: '一张写实风格的照片，展示'
-  },
-  {
-    name: '动漫风格',
-    template: '一张日本动漫风格的插图，展示'
-  },
-  {
-    name: '水彩画',
-    template: '一幅精美的水彩画，描绘'
-  },
-  {
-    name: '3D渲染',
-    template: '一张高质量的3D渲染图，展示'
-  }
-];
-
 // 画面尺寸选项
 const RATIO_OPTIONS = [
   { value: "", label: "自动" },
@@ -33,7 +13,6 @@ const PromptInput = ({ onGenerate, isLoading }) => {
   const { config } = useConfig();
   const [prompt, setPrompt] = useState('');
   const [batchSize, setBatchSize] = useState(config.batchSize || 4);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [ratio, setRatio] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -55,11 +34,6 @@ const PromptInput = ({ onGenerate, isLoading }) => {
       ratio,
       imageBase64Array: uploadedImages
     });
-  };
-  
-  const applyTemplate = (template) => {
-    setPrompt(template);
-    setShowTemplates(false);
   };
   
   const handleImageUpload = (e) => {
@@ -115,34 +89,12 @@ const PromptInput = ({ onGenerate, isLoading }) => {
             <label htmlFor="prompt" className="block text-sm font-medium text-gray-700">
               输入提示词
             </label>
-            <button
-              type="button"
-              onClick={() => setShowTemplates(!showTemplates)}
-              className="text-sm text-blue-600 hover:text-blue-800"
-            >
-              {showTemplates ? '隐藏模板' : '使用模板'}
-            </button>
           </div>
-          
-          {showTemplates && (
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {PROMPT_TEMPLATES.map((item, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  className="text-left text-sm bg-gray-100 hover:bg-gray-200 p-2 rounded truncate"
-                  onClick={() => applyTemplate(item.template)}
-                >
-                  {item.name}
-                </button>
-              ))}
-            </div>
-          )}
           
           <textarea
             id="prompt"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            rows="3"
+            rows="9"
             placeholder="描述你想要生成的图像，例如：一只在草地上奔跑的金色拉布拉多犬，阳光明媚，背景是蓝天白云"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

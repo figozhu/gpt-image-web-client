@@ -17,6 +17,7 @@ const Home = () => {
   const [generatedImages, setGeneratedImages] = useState([]);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
+  const [currentBatchSize, setCurrentBatchSize] = useState(config.batchSize || 4);
   
   // 检查API设置
   const isConfigValid = config.apiEndpoint && config.apiKey;
@@ -45,6 +46,7 @@ const Home = () => {
     setError(null);
     setCurrentPrompt(prompt);
     setCurrentImageBase64Array(imageBase64Array || []);
+    setCurrentBatchSize(batchSize);
     
     try {
       // 开始时间
@@ -260,7 +262,11 @@ const Home = () => {
         )}
         
         <div className="mt-8">
-          <ImageGrid images={generatedImages} isLoading={isLoading} />
+          <ImageGrid 
+            images={generatedImages} 
+            isLoading={isLoading} 
+            batchSize={currentBatchSize} 
+          />
         </div>
       </main>
     </div>

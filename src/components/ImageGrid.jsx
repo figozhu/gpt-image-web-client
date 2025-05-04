@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { downloadImage } from '../services/api';
+import { useConfig } from '../contexts/ConfigContext';
 
-const ImageGrid = ({ images, isLoading }) => {
+const ImageGrid = ({ images, isLoading, batchSize }) => {
   const [expandedImage, setExpandedImage] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
   const [isComparing, setIsComparing] = useState(false);
+  const { config } = useConfig();
   
   // 处理图片下载
   const handleDownload = (imageUrl, index) => {
@@ -65,9 +67,11 @@ const ImageGrid = ({ images, isLoading }) => {
   
   // 在加载中时显示骨架屏
   if (isLoading) {
+    // 使用传入的batchSize，如果没有则使用配置值，如果配置也没有则默认为4
+    const skeletonCount = batchSize || config.batchSize || 4;
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-        {Array.from({ length: 3 }).map((_, index) => (
+        {Array.from({ length: skeletonCount }).map((_, index) => (
           <div 
             key={`skeleton-${index}`}
             className="bg-gray-200 rounded-lg overflow-hidden animate-pulse"

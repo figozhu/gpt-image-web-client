@@ -52,7 +52,12 @@ function getDB() {
 
 /**
  * 保存会话到数据库
- * @param {Object} session - 会话对象
+ * @param {Object} session - 会话对象 
+ * @param {string} session.prompt - 提示词
+ * @param {string} [session.imageBase64] - 可选的图片base64编码
+ * @param {number} session.batchSize - 批量大小
+ * @param {string} [session.ratio] - 可选的画面比例
+ * @param {Array} session.results - 生成结果
  * @returns {Promise} - 保存操作的Promise
  */
 export async function saveSession(session) {
@@ -128,11 +133,7 @@ export async function getSession(id) {
     };
     
     request.onsuccess = (event) => {
-      if (request.result) {
-        resolve(request.result);
-      } else {
-        reject('未找到会话：' + id);
-      }
+      resolve(event.target.result);
     };
   });
 }
@@ -160,8 +161,8 @@ export async function deleteSession(id) {
 }
 
 /**
- * 清除所有会话
- * @returns {Promise} - 清除操作的Promise
+ * 清空所有会话
+ * @returns {Promise} - 清空操作的Promise
  */
 export async function clearAllSessions() {
   const db = await getDB();
@@ -171,7 +172,7 @@ export async function clearAllSessions() {
     const request = store.clear();
     
     request.onerror = (event) => {
-      reject('清除会话失败：' + event.target.error);
+      reject('清空会话失败：' + event.target.error);
     };
     
     request.onsuccess = () => {

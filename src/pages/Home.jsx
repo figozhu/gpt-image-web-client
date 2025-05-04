@@ -17,6 +17,7 @@ const Home = () => {
   const [generatedImages, setGeneratedImages] = useState([]);
   const [progress, setProgress] = useState(0);
   const [currentPrompt, setCurrentPrompt] = useState('');
+  const [currentImageBase64, setCurrentImageBase64] = useState(null);
   
   // 检查API设置
   const isConfigValid = config.apiEndpoint && config.apiKey;
@@ -33,7 +34,7 @@ const Home = () => {
   }, [error]);
   
   // 处理图像生成
-  const handleGenerate = async ({ prompt, batchSize, ratio }) => {
+  const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64 }) => {
     // 检查配置
     if (!isConfigValid) {
       setError('请先在设置中配置API端点和API密钥');
@@ -45,6 +46,7 @@ const Home = () => {
     setError(null);
     setProgress(0);
     setCurrentPrompt(prompt);
+    setCurrentImageBase64(imageBase64);
     
     try {
       // 开始时间
@@ -66,6 +68,7 @@ const Home = () => {
             batchPromises.push(
               generateImage(
                 prompt,
+                imageBase64,
                 config.apiKey,
                 config.apiEndpoint,
                 config.useProxy,
@@ -94,56 +97,64 @@ const Home = () => {
       
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
-          // 适配新的响应格式
-          if (result.value && result.value.choices && result.value.choices.length > 0) {
-            hasSuccesses = true;
-            const responseTime = new Date();
-            const messageContent = result.value.choices[0].message?.content;
-            
-            if (messageContent) {
-              // 提取图像URL，格式可能是Markdown格式: ![image](url)
-              const urlMatch = messageContent.match(/!\[.*?\]\((.*?)\)/);
-              const imageUrl = urlMatch ? urlMatch[1] : messageContent;
-              
+          const data = result.value;
+          
+          // 检查API返回的内容格式
+          if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
+            // 提取图像URL (特定于API返回格式)
+            // 注意: 这里的逻辑可能需要根据实际API返回格式进行调整
+            const imageUrlMatch = data.choices[0].message.content.match(/!\[.*?\]\((.*?)\)/);
+            if (imageUrlMatch && imageUrlMatch[1]) {
+              const imageUrl = imageUrlMatch[1];
               processedImages.push({
+                id: `img-${Date.now()}-${index}`,
                 url: imageUrl,
-                responseTime: responseTime.toISOString(),
-                metadata: result.value
+                timestamp: new Date().toISOString(),
+                prompt: prompt
               });
+              hasSuccesses = true;
             }
-          } else {
-            console.error('无效的图像生成响应格式:', result);
           }
         } else {
-          console.error('图像生成失败:', result.reason);
+          console.error(`请求 ${index + 1} 失败:`, result.reason);
         }
       });
+      
+      // 如果所有请求都失败，显示错误
+      if (!hasSuccesses && results.length > 0) {
+        const firstError = results.find(r => r.status === 'rejected');
+        if (firstError) {
+          throw new Error(firstError.reason.message || '所有图像生成请求都失败');
+        } else {
+          throw new Error('无法从API响应中提取图像URL');
+        }
+      }
       
       // 更新状态
       setGeneratedImages(processedImages);
       
-      // 只有当至少有一个成功时才保存会话
-      if (hasSuccesses) {
-        const session = {
-          id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: startTime.toISOString(),
-          prompt,
-          batchSize,
-          ratio,
-          results: processedImages.map(img => ({
-            imageUrl: img.url,
-            responseTime: img.responseTime,
-            metadata: img.metadata
-          }))
-        };
-        
-        addSession(session);
-      } else {
-        setError('所有图像生成请求都失败了。请检查您的API设置和提示词。');
-      }
+      // 计算总耗时
+      const endTime = new Date();
+      const elapsedTimeMs = endTime - startTime;
+      
+      // 保存会话到历史记录
+      addSession({
+        id: `session-${Date.now()}`,
+        timestamp: startTime.toISOString(),
+        prompt: prompt,
+        imageBase64: imageBase64,
+        batchSize: batchSize,
+        ratio: ratio,
+        results: processedImages.map(img => ({
+          imageUrl: img.url,
+          responseTime: elapsedTimeMs,
+          metadata: {}
+        }))
+      });
+      
     } catch (err) {
-      console.error('Error generating images:', err);
-      setError(`生成图像时出错: ${err.message}`);
+      setError(err.message || '图像生成过程中发生错误');
+      console.error('生成错误:', err);
     } finally {
       setIsLoading(false);
       setProgress(0);
@@ -151,21 +162,39 @@ const Home = () => {
   };
   
   // 辅助函数：调用单个图像生成API
-  const generateImage = async (prompt, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) => {
+  const generateImage = async (prompt, imageBase64, apiKey, apiEndpoint, useProxy, proxyUrl, ratio) => {
     const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
     
     // 如果提供了比例，将其添加到提示词内容中
-    let content = prompt;
+    let textContent = prompt;
     if (ratio) {
-      content = `${prompt}\n画面尺寸：${ratio}`;
+      textContent = `${prompt}\n画面尺寸：${ratio}`;
+    }
+    
+    // 构建content数组
+    const contentArray = [
+      {
+        type: "text",
+        text: textContent
+      }
+    ];
+    
+    // 如果提供了图片，添加到content数组
+    if (imageBase64) {
+      contentArray.push({
+        type: "image_url",
+        image_url: {
+          url: `data:image/jpeg;base64,${imageBase64}`
+        }
+      });
     }
     
     const requestBody = {
       model: 'gpt-4o-image-vip',
       messages: [
         {
-          content: content,
           role: "user",
+          content: contentArray
         }
       ]
     };
@@ -227,6 +256,11 @@ const Home = () => {
             <p className="mt-2 text-sm text-gray-600 line-clamp-1">
               提示词: {currentPrompt}
             </p>
+            {currentImageBase64 && (
+              <p className="mt-1 text-sm text-gray-600">
+                已上传参考图片
+              </p>
+            )}
           </div>
         )}
         

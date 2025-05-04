@@ -35,6 +35,8 @@ const PromptInput = ({ onGenerate, isLoading }) => {
   const [batchSize, setBatchSize] = useState(config.batchSize || 4);
   const [showTemplates, setShowTemplates] = useState(false);
   const [ratio, setRatio] = useState("");
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   
   // 当配置更改时更新batchSize
   useEffect(() => {
@@ -50,13 +52,43 @@ const PromptInput = ({ onGenerate, isLoading }) => {
     onGenerate({
       prompt: prompt.trim(),
       batchSize,
-      ratio
+      ratio,
+      imageBase64: uploadedImage
     });
   };
   
   const applyTemplate = (template) => {
     setPrompt(template);
     setShowTemplates(false);
+  };
+  
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // 检查文件类型
+    const fileType = file.type;
+    if (!fileType.match('image.*')) {
+      alert('请上传图片文件');
+      return;
+    }
+    
+    // 创建文件预览
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target.result.split(',')[1];
+      setUploadedImage(base64String);
+      setImagePreview(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const clearImage = () => {
+    setUploadedImage(null);
+    setImagePreview(null);
+    // 清除文件输入
+    const fileInput = document.getElementById('image-upload');
+    if (fileInput) fileInput.value = '';
   };
   
   return (
@@ -104,6 +136,54 @@ const PromptInput = ({ onGenerate, isLoading }) => {
           <div className="flex justify-end text-xs text-gray-500">
             {prompt.length} 个字符
           </div>
+        </div>
+        
+        {/* 图片上传区域 */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            上传参考图片 (可选)
+          </label>
+          <div className="flex items-center space-x-2">
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageUpload}
+              disabled={isLoading}
+            />
+            <label
+              htmlFor="image-upload"
+              className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded cursor-pointer text-sm flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              选择图片
+            </label>
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={clearImage}
+                className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm flex items-center"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                移除图片
+              </button>
+            )}
+          </div>
+          
+          {imagePreview && (
+            <div className="mt-2">
+              <img
+                src={imagePreview}
+                alt="上传的图片预览"
+                className="max-h-32 max-w-full rounded border border-gray-300"
+              />
+            </div>
+          )}
         </div>
         
         <div className="space-y-2 mb-4">

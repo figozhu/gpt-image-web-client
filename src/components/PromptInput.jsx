@@ -9,7 +9,7 @@ const RATIO_OPTIONS = [
   { value: "2:3", label: "纵向 (2:3)" }
 ];
 
-const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSize = 0 }) => {
+const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSize = 0, showResetButton = false, onReset }) => {
   const { config } = useConfig();
   const [prompt, setPrompt] = useState(initialPrompt || '');
   const [batchSize, setBatchSize] = useState(initialBatchSize || config.batchSize || 4);
@@ -62,6 +62,12 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
     } else {
       console.log('父组件未提供updatePrompt方法');
     }
+  };
+  
+  // 处理重置按钮点击
+  const handleReset = () => {
+    if (isLoading || !onReset) return;
+    onReset();
   };
   
   const handleImageUpload = (e) => {
@@ -243,10 +249,10 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
             </div>
           </div>
           
-          <div className="flex-none">
+          <div className="flex-none flex space-x-2">
             <button
               type="submit"
-              className={`w-full md:w-auto px-6 py-2 rounded-md text-white font-medium ${
+              className={`px-6 py-2 rounded-md text-white font-medium ${
                 isLoading
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
@@ -265,6 +271,25 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
                 `生成 ${batchSize} 张图像`
               )}
             </button>
+            
+            {showResetButton && (
+              <button
+                type="button"
+                onClick={handleReset}
+                disabled={isLoading}
+                className={`px-4 py-2 rounded-md flex items-center text-sm transition-colors ${
+                  isLoading 
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                title="清空所有输入和生成的图像"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                重置
+              </button>
+            )}
           </div>
         </div>
       </form>

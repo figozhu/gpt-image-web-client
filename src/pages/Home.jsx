@@ -24,7 +24,8 @@ const Home = () => {
     currentImageBase64Array, updateImageBase64Array,
     currentBatchSize, updateBatchSize,
     isLoading, updateLoadingState,
-    error, updateError
+    error, updateError,
+    resetState
   } = useHomeState();
   
   const [showPermissionBtn, setShowPermissionBtn] = useState(false);
@@ -70,6 +71,20 @@ const Home = () => {
   const updatePromptCallback = useCallback((prompt) => {
     updateCurrentPrompt(prompt);
   }, [updateCurrentPrompt]);
+  
+  // 处理重置按钮点击
+  const handleReset = () => {
+    if (isLoading) {
+      return; // 在加载状态下不允许重置
+    }
+    
+    // 确认对话框
+    if (window.confirm('确定要清空当前所有内容，恢复到初始状态吗？')) {
+      resetState();
+      // 清除sessionStorage中的状态
+      sessionStorage.removeItem('homeState');
+    }
+  };
   
   // 处理图像生成
   const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64Array }) => {
@@ -372,6 +387,8 @@ const Home = () => {
           isLoading={isLoading} 
           initialPrompt={currentPrompt} 
           initialBatchSize={currentBatchSize}
+          showResetButton={true}
+          onReset={handleReset}
         />
         
         {isLoading && (

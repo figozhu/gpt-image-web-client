@@ -13,6 +13,7 @@ import {
   getNotificationPermission, 
   isNotificationSupported 
 } from '../services/notification';
+import { getVersionInfo } from '../services/version';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -326,7 +327,12 @@ const Home = () => {
       <Header />
       
       <main className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">GPT图像生成器</h1>
+        <h1 className="text-3xl font-bold text-center mb-8 flex items-center justify-center">
+          GPT图像生成器
+          <span className="ml-2 text-sm bg-gray-200 px-2 py-1 rounded-full text-gray-600">
+            {getVersionInfo().display}
+          </span>
+        </h1>
         
         <div className="max-w-xl mx-auto mb-6 bg-green-50 p-4 rounded-md border border-green-200">
           <div className="flex items-start">

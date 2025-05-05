@@ -2,8 +2,11 @@ import React from 'react';
 import Header from '../components/Header';
 import SettingsForm from '../components/SettingsForm';
 import NotificationTester from '../components/NotificationTester';
+import { getVersionInfo } from '../services/version';
 
 const Settings = () => {
+  const { version, date } = getVersionInfo();
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -48,6 +51,11 @@ const Settings = () => {
                 <li>定期检查您的API使用情况和账单</li>
               </ul>
             </div>
+          </div>
+          
+          <div className="mt-8 text-center text-gray-500 text-sm">
+            <p>GPT图像生成器 版本 {version}</p>
+            <p className="mt-1">发布日期: {date}</p>
           </div>
         </div>
       </main>

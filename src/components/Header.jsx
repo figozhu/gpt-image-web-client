@@ -11,7 +11,7 @@ const Header = () => {
       <div className="container mx-auto flex justify-between items-center">
         <div className="text-xl font-bold flex items-center">
           GPT图像生成器
-          <span className="ml-2 text-xs bg-gray-700 px-2 py-1 rounded-full text-blue-300">
+          <span className="ml-2 text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white px-2 py-0.5 rounded-full shadow-sm">
             {versionDisplay}
           </span>
         </div>

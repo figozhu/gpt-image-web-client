@@ -329,7 +329,7 @@ const Home = () => {
       <main className="container mx-auto py-8 px-4">
         <h1 className="text-3xl font-bold text-center mb-8 flex items-center justify-center">
           GPT图像生成器
-          <span className="ml-2 text-sm bg-gray-200 px-2 py-1 rounded-full text-gray-600">
+          <span className="ml-2 text-xs bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full shadow-sm transform hover:scale-105 transition-transform duration-300">
             {getVersionInfo().display}
           </span>
         </h1>

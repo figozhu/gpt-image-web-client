@@ -53,9 +53,15 @@ const Settings = () => {
             </div>
           </div>
           
-          <div className="mt-8 text-center text-gray-500 text-sm">
-            <p>GPT图像生成器 版本 {version}</p>
-            <p className="mt-1">发布日期: {date}</p>
+          <div className="mt-8 text-center">
+            <div className="inline-block bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-[1px]">
+              <div className="bg-white rounded-lg px-4 py-2">
+                <p className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-700 font-medium">
+                  GPT图像生成器 版本 {version}
+                </p>
+                <p className="text-gray-500 text-xs mt-1">发布日期: {date}</p>
+              </div>
+            </div>
           </div>
         </div>
       </main>

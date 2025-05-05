@@ -3,7 +3,7 @@
  */
 
 // 从package.json获取的应用版本号
-export const APP_VERSION = '1.0.0';
+export const APP_VERSION = '1.0.1';
 
 // 版本号发布日期
 export const VERSION_DATE = '2025-05-05';

@@ -1,14 +1,16 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useConfig } from './ConfigContext';
 
 const HomeStateContext = createContext();
 
 export const useHomeState = () => useContext(HomeStateContext);
 
 export const HomeStateProvider = ({ children }) => {
+  const { config } = useConfig();
   const [generatedImages, setGeneratedImages] = useState([]);
   const [currentPrompt, setCurrentPrompt] = useState('');
   const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
-  const [currentBatchSize, setCurrentBatchSize] = useState(4);
+  const [currentBatchSize, setCurrentBatchSize] = useState(config.batchSize || 4);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,6 +26,14 @@ export const HomeStateProvider = ({ children }) => {
   useEffect(() => {
     console.log('HomeStateContext中currentPrompt更新:', currentPrompt);
   }, [currentPrompt]);
+  
+  // 监听config.batchSize变化
+  useEffect(() => {
+    if (config.batchSize && currentBatchSize !== config.batchSize) {
+      console.log('从配置更新batchSize:', config.batchSize);
+      setCurrentBatchSize(config.batchSize);
+    }
+  }, [config.batchSize]);
 
   // 更新生成的图片
   const updateGeneratedImages = (images) => {
@@ -67,7 +77,7 @@ export const HomeStateProvider = ({ children }) => {
     setGeneratedImages([]);
     setCurrentPrompt('');
     setCurrentImageBase64Array([]);
-    setCurrentBatchSize(4);
+    setCurrentBatchSize(config.batchSize || 4);
     setIsLoading(false);
     setError(null);
   };

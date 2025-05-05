@@ -6,6 +6,7 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
   const [expandedImage, setExpandedImage] = useState(null);
   const [selectedImages, setSelectedImages] = useState([]);
   const [isComparing, setIsComparing] = useState(false);
+  const [viewMode, setViewMode] = useState('horizontal');
   const { config } = useConfig();
   
   // 处理图片下载
@@ -255,7 +256,7 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
       {/* 图片对比模态框 */}
       {isComparing && selectedImages.length === 2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90" onClick={handleClose}>
-          <div className="relative w-full max-w-5xl max-h-screen p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full h-full max-h-screen p-2" onClick={(e) => e.stopPropagation()}>
             <button 
               className="absolute top-2 right-2 text-white bg-black bg-opacity-50 rounded-full p-2 z-10"
               onClick={handleClose}
@@ -264,35 +265,61 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-              <div className="flex-1 bg-black bg-opacity-50 p-2 rounded">
-                <img 
-                  src={selectedImages[0].url} 
-                  alt="比较图片 1" 
-                  className="max-w-full max-h-[70vh] mx-auto object-contain"
-                />
-                <div className="mt-2 text-center">
-                  <button
-                    onClick={() => handleDownload(selectedImages[0].url, 'compare-1')}
-                    className="bg-white text-gray-800 px-4 py-1 rounded text-sm"
-                  >
-                    下载图片
-                  </button>
+            
+            {/* 视图切换按钮 */}
+            <div className="absolute top-2 left-2 z-10 flex space-x-2">
+              <button 
+                className="text-white bg-black bg-opacity-50 rounded px-3 py-1 text-sm hover:bg-opacity-70"
+                onClick={() => setViewMode(viewMode === 'horizontal' ? 'vertical' : 'horizontal')}
+              >
+                切换视图
+              </button>
+            </div>
+            
+            <div className={`h-full flex ${viewMode === 'horizontal' ? 'flex-row' : 'flex-col'} space-x-1 space-y-0 ${viewMode === 'vertical' ? 'space-x-0 space-y-1' : ''}`}>
+              <div className={`bg-black bg-opacity-30 p-1 rounded ${viewMode === 'horizontal' ? 'w-1/2' : 'h-1/2'}`}>
+                <div className="relative h-full flex flex-col">
+                  <div className="absolute top-1 left-1 bg-white bg-opacity-75 text-black px-2 py-0.5 rounded text-xs">
+                    图片 1
+                  </div>
+                  <div className="flex-grow flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={selectedImages[0].url} 
+                      alt="比较图片 1" 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="mt-1 text-center">
+                    <button
+                      onClick={() => handleDownload(selectedImages[0].url, 'compare-1')}
+                      className="bg-white text-gray-800 px-3 py-1 rounded text-xs"
+                    >
+                      下载
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 bg-black bg-opacity-50 p-2 rounded">
-                <img 
-                  src={selectedImages[1].url} 
-                  alt="比较图片 2" 
-                  className="max-w-full max-h-[70vh] mx-auto object-contain"
-                />
-                <div className="mt-2 text-center">
-                  <button
-                    onClick={() => handleDownload(selectedImages[1].url, 'compare-2')}
-                    className="bg-white text-gray-800 px-4 py-1 rounded text-sm"
-                  >
-                    下载图片
-                  </button>
+              
+              <div className={`bg-black bg-opacity-30 p-1 rounded ${viewMode === 'horizontal' ? 'w-1/2' : 'h-1/2'}`}>
+                <div className="relative h-full flex flex-col">
+                  <div className="absolute top-1 left-1 bg-white bg-opacity-75 text-black px-2 py-0.5 rounded text-xs">
+                    图片 2
+                  </div>
+                  <div className="flex-grow flex items-center justify-center overflow-hidden">
+                    <img 
+                      src={selectedImages[1].url} 
+                      alt="比较图片 2" 
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="mt-1 text-center">
+                    <button
+                      onClick={() => handleDownload(selectedImages[1].url, 'compare-2')}
+                      className="bg-white text-gray-800 px-3 py-1 rounded text-xs"
+                    >
+                      下载
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

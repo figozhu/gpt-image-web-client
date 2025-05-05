@@ -23,7 +23,7 @@
 
 1. 克隆仓库:
    ```
-   git clone https://github.com/yourusername/gpt-image-web-client.git
+   git clone https://github.com/figozhu/gpt-image-web-client
    cd gpt-image-web-client
    ```
 

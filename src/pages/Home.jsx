@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import PromptInput from '../components/PromptInput';
 import ImageGrid from '../components/ImageGrid';
 import { useConfig } from '../contexts/ConfigContext';
 import { useHistory } from '../contexts/HistoryContext';
+import { useHomeState } from '../contexts/HomeStateContext';
 import { generateBatch } from '../services/api';
 import { 
   requestNotificationPermission, 
@@ -17,13 +18,15 @@ const Home = () => {
   const navigate = useNavigate();
   const { config, updateNotificationPermission } = useConfig();
   const { addSession } = useHistory();
+  const { 
+    generatedImages, updateGeneratedImages,
+    currentPrompt, updateCurrentPrompt,
+    currentImageBase64Array, updateImageBase64Array,
+    currentBatchSize, updateBatchSize,
+    isLoading, updateLoadingState,
+    error, updateError
+  } = useHomeState();
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [generatedImages, setGeneratedImages] = useState([]);
-  const [currentPrompt, setCurrentPrompt] = useState('');
-  const [currentImageBase64Array, setCurrentImageBase64Array] = useState([]);
-  const [currentBatchSize, setCurrentBatchSize] = useState(config.batchSize || 4);
   const [showPermissionBtn, setShowPermissionBtn] = useState(false);
   
   // 检查API设置
@@ -49,12 +52,12 @@ const Home = () => {
   useEffect(() => {
     if (error) {
       const timer = setTimeout(() => {
-        setError(null);
+        updateError(null);
       }, 5000);
       
       return () => clearTimeout(timer);
     }
-  }, [error]);
+  }, [error, updateError]);
   
   // 处理通知权限申请
   const handleRequestPermission = async () => {
@@ -63,20 +66,25 @@ const Home = () => {
     setShowPermissionBtn(permission === 'default');
   };
   
+  // 实时更新提示词状态的回调函数
+  const updatePromptCallback = useCallback((prompt) => {
+    updateCurrentPrompt(prompt);
+  }, [updateCurrentPrompt]);
+  
   // 处理图像生成
   const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64Array }) => {
     // 检查配置
     if (!isConfigValid) {
-      setError('请先在设置中配置API端点和API密钥');
+      updateError('请先在设置中配置API端点和API密钥');
       setTimeout(() => navigate('/settings'), 2000);
       return;
     }
     
-    setIsLoading(true);
-    setError(null);
-    setCurrentPrompt(prompt);
-    setCurrentImageBase64Array(imageBase64Array || []);
-    setCurrentBatchSize(batchSize);
+    updateLoadingState(true);
+    updateError(null);
+    updateCurrentPrompt(prompt);
+    updateImageBase64Array(imageBase64Array || []);
+    updateBatchSize(batchSize);
     
     try {
       // 开始时间
@@ -159,7 +167,7 @@ const Home = () => {
       }
       
       // 更新状态
-      setGeneratedImages(processedImages);
+      updateGeneratedImages(processedImages);
       
       // 计算总耗时
       const endTime = new Date();
@@ -209,8 +217,8 @@ const Home = () => {
               
               // 如果通知发送失败，在页面上显示一个提示
               if (!notification) {
-                setError('尝试发送通知失败，请检查浏览器通知设置');
-                setTimeout(() => setError(null), 3000);
+                updateError('尝试发送通知失败，请检查浏览器通知设置');
+                setTimeout(() => updateError(null), 3000);
               }
             } else {
               console.log('通知权限未授予，当前状态:', getNotificationPermission());
@@ -226,12 +234,15 @@ const Home = () => {
       }
       
     } catch (err) {
-      setError(err.message || '图像生成过程中发生错误');
+      updateError(err.message || '图像生成过程中发生错误');
       console.error('生成错误:', err);
     } finally {
-      setIsLoading(false);
+      updateLoadingState(false);
     }
   };
+  
+  // 为handleGenerate增加updatePrompt方法，使其可以被PromptInput使用
+  handleGenerate.updatePrompt = updatePromptCallback;
   
   // 辅助函数：调用单个图像生成API
   const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) => {
@@ -356,7 +367,12 @@ const Home = () => {
           </div>
         )}
         
-        <PromptInput onGenerate={handleGenerate} isLoading={isLoading} />
+        <PromptInput 
+          onGenerate={handleGenerate} 
+          isLoading={isLoading} 
+          initialPrompt={currentPrompt} 
+          initialBatchSize={currentBatchSize}
+        />
         
         {isLoading && (
           <div className="max-w-xl mx-auto mt-6 bg-blue-50 p-4 rounded-md border border-blue-200">

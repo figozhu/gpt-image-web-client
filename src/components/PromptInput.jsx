@@ -9,20 +9,34 @@ const RATIO_OPTIONS = [
   { value: "2:3", label: "纵向 (2:3)" }
 ];
 
-const PromptInput = ({ onGenerate, isLoading }) => {
+const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSize = 0 }) => {
   const { config } = useConfig();
-  const [prompt, setPrompt] = useState('');
-  const [batchSize, setBatchSize] = useState(config.batchSize || 4);
+  const [prompt, setPrompt] = useState(initialPrompt || '');
+  const [batchSize, setBatchSize] = useState(initialBatchSize || config.batchSize || 4);
   const [ratio, setRatio] = useState("");
   const [uploadedImages, setUploadedImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   
-  // 当配置更改时更新batchSize
+  // 当组件初次挂载时，打印日志
   useEffect(() => {
-    if (config.batchSize) {
+    console.log('PromptInput组件挂载，初始提示词:', initialPrompt);
+  }, []);
+  
+  // 当初始值变化时更新状态
+  useEffect(() => {
+    if (initialPrompt !== undefined && initialPrompt !== null) {
+      console.log('初始提示词变化:', initialPrompt);
+      setPrompt(initialPrompt);
+    }
+  }, [initialPrompt]);
+
+  useEffect(() => {
+    if (initialBatchSize) {
+      setBatchSize(initialBatchSize);
+    } else if (config.batchSize) {
       setBatchSize(config.batchSize);
     }
-  }, [config.batchSize]);
+  }, [initialBatchSize, config.batchSize]);
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -34,6 +48,20 @@ const PromptInput = ({ onGenerate, isLoading }) => {
       ratio,
       imageBase64Array: uploadedImages
     });
+  };
+  
+  // 处理输入变化时同时通知父组件
+  const handlePromptChange = (e) => {
+    const newValue = e.target.value;
+    console.log('输入框内容变化:', newValue);
+    setPrompt(newValue);
+    // 如果父组件提供了更新方法，则调用
+    if (onGenerate && typeof onGenerate.updatePrompt === 'function') {
+      console.log('调用父组件updatePrompt方法');
+      onGenerate.updatePrompt(newValue);
+    } else {
+      console.log('父组件未提供updatePrompt方法');
+    }
   };
   
   const handleImageUpload = (e) => {
@@ -97,7 +125,7 @@ const PromptInput = ({ onGenerate, isLoading }) => {
             rows="9"
             placeholder="描述你想要生成的图像，例如：一只在草地上奔跑的金色拉布拉多犬，阳光明媚，背景是蓝天白云"
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={handlePromptChange}
             disabled={isLoading}
           />
           

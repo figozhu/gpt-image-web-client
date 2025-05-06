@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useHistory } from '../contexts/HistoryContext';
 import { downloadImage } from '../services/api';
+import { CACHE_CONFIG } from '../services/config';
 
 const HistoryViewer = () => {
   const { sessions, removeSession, clearSessions, loading, searchSessions } = useHistory();
@@ -17,6 +18,63 @@ const HistoryViewer = () => {
   const [expandedSessionId, setExpandedSessionId] = useState(null);
   const searchTimeoutRef = useRef(null);
   const sessionsPerPage = 5;
+  
+  // 预加载和缓存图片的函数
+  const preloadAndCacheImage = (url) => {
+    if (!url) return;
+    
+    // 创建新的Image对象
+    const img = new Image();
+    
+    // 加载完成后缓存图片
+    img.onload = () => {
+      // 检查是否支持Caches API
+      if ('caches' in window) {
+        const cacheName = 'image-cache-v1';
+        caches.open(cacheName).then(cache => {
+          // 尝试获取图片并添加到缓存
+          fetch(url, { 
+            mode: 'no-cors',
+            cache: 'force-cache',
+            headers: {
+              'Cache-Control': `max-age=${CACHE_CONFIG.IMAGE_CACHE_MAX_AGE}`
+            }
+          })
+          .then(response => {
+            if (response) {
+              cache.put(url, response);
+            }
+          })
+          .catch(() => {
+            console.warn('无法缓存图片', url);
+          });
+        });
+      }
+    };
+    
+    // 设置图片来源
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+  };
+  
+  // 当会话加载完成后，预加载所有图片
+  useEffect(() => {
+    if (!loading && filteredSessions.length > 0) {
+      const currentPageSessions = filteredSessions.slice(indexOfFirstSession, indexOfLastSession);
+      
+      // 遍历当前页面的会话
+      currentPageSessions.forEach(session => {
+        if (session.results && session.results.length > 0) {
+          // 预加载每个会话的图片
+          session.results.forEach(result => {
+            if (result.imageUrl) {
+              preloadAndCacheImage(result.imageUrl);
+            }
+          });
+        }
+      });
+    }
+  }, [loading, filteredSessions, currentPage]);
   
   // 初始化过滤后的会话列表
   useEffect(() => {
@@ -441,6 +499,9 @@ const HistoryViewer = () => {
                         alt={`Generated image ${index + 1}`}
                         className="w-full h-40 object-cover rounded cursor-pointer"
                         onClick={(e) => handleImageClick(session.id, result.imageUrl, e)}
+                        crossOrigin="anonymous"
+                        loading="lazy"
+                        onLoad={() => preloadAndCacheImage(result.imageUrl)}
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iMTIiIHk9IjEyIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYWFhYWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSI+SW1hZ2UgRXJyb3I8L3RleHQ+PC9zdmc+';
@@ -527,6 +588,9 @@ const HistoryViewer = () => {
               src={expandedImage} 
               alt="查看大图" 
               className="max-w-full max-h-[80vh] object-contain"
+              crossOrigin="anonymous"
+              loading="eager"
+              onLoad={() => preloadAndCacheImage(expandedImage)}
             />
             <div className="mt-4 flex justify-center">
               <button
@@ -561,6 +625,9 @@ const HistoryViewer = () => {
                   src={selectedImages[0].url} 
                   alt="比较图片 1" 
                   className="max-w-full max-h-[70vh] mx-auto object-contain"
+                  crossOrigin="anonymous"
+                  loading="eager"
+                  onLoad={() => preloadAndCacheImage(selectedImages[0].url)}
                 />
                 <div className="mt-2 text-center">
                   <button
@@ -576,6 +643,9 @@ const HistoryViewer = () => {
                   src={selectedImages[1].url} 
                   alt="比较图片 2" 
                   className="max-w-full max-h-[70vh] mx-auto object-contain"
+                  crossOrigin="anonymous"
+                  loading="eager"
+                  onLoad={() => preloadAndCacheImage(selectedImages[1].url)}
                 />
                 <div className="mt-2 text-center">
                   <button

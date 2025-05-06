@@ -152,4 +152,34 @@ if (typeof window !== 'undefined') {
       cleanupServiceWorker();
     }
   });
-} 
+}
+
+/**
+ * 显示图片缓存通知
+ * @param {number} count - 缓存的图片数量
+ * @returns {boolean} - 是否成功显示通知
+ */
+export const showImageCacheNotification = (count) => {
+  if (!isNotificationSupported()) {
+    return false;
+  }
+  
+  const options = {
+    body: `已为您缓存${count}张图片，下次查看历史记录时将更快加载。`,
+    icon: '/favicon.svg',
+    tag: 'image-cache-notification',
+    requireInteraction: false,
+  };
+  
+  try {
+    // 只有在已授权的情况下才发送通知
+    if (Notification.permission === 'granted') {
+      new Notification('图片缓存成功', options);
+      return true;
+    }
+  } catch (error) {
+    console.error('显示缓存通知时出错:', error);
+  }
+  
+  return false;
+}; 

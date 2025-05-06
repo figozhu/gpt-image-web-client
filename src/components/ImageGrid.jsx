@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { downloadImage } from '../services/api';
 import { useConfig } from '../contexts/ConfigContext';
+import { CACHE_CONFIG } from '../services/config';
+import { showImageCacheNotification } from '../services/notification';
 
 const ImageGrid = ({ images, isLoading, batchSize }) => {
   const [expandedImage, setExpandedImage] = useState(null);
@@ -8,6 +10,79 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
   const [isComparing, setIsComparing] = useState(false);
   const [viewMode, setViewMode] = useState('horizontal');
   const { config } = useConfig();
+  
+  // 缓存计数
+  const [cachedImagesCount, setCachedImagesCount] = useState(0);
+  
+  // 修改预加载和缓存图片的函数
+  const preloadAndCacheImage = (url) => {
+    if (!url) return;
+    
+    // 创建新的Image对象
+    const img = new Image();
+    
+    // 加载完成后缓存图片
+    img.onload = () => {
+      // 检查是否支持Caches API
+      if ('caches' in window) {
+        const cacheName = 'image-cache-v1';
+        caches.open(cacheName).then(cache => {
+          // 检查图片是否已经缓存
+          cache.match(url).then(cachedResponse => {
+            if (!cachedResponse) {
+              // 如果未缓存，则添加到缓存
+              fetch(url, { 
+                mode: 'no-cors',
+                cache: 'force-cache',
+                headers: {
+                  'Cache-Control': `max-age=${CACHE_CONFIG.IMAGE_CACHE_MAX_AGE}`
+                }
+              })
+              .then(response => {
+                if (response) {
+                  cache.put(url, response);
+                  // 更新缓存计数
+                  setCachedImagesCount(prev => prev + 1);
+                }
+              })
+              .catch(() => {
+                console.warn('无法缓存图片', url);
+              });
+            }
+          });
+        });
+      }
+    };
+    
+    // 设置图片来源
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+  };
+  
+  // 当图片数组变化时预加载
+  useEffect(() => {
+    if (images && images.length > 0) {
+      images.forEach(image => {
+        if (image.url) {
+          preloadAndCacheImage(image.url);
+        }
+      });
+    }
+  }, [images]);
+  
+  // 当图片加载完成后，显示缓存通知
+  useEffect(() => {
+    if (cachedImagesCount > 0 && !isLoading) {
+      // 延迟显示通知，确保所有图片都尝试缓存
+      const timer = setTimeout(() => {
+        showImageCacheNotification(cachedImagesCount);
+        // 重置计数
+        setCachedImagesCount(0);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [cachedImagesCount, isLoading]);
   
   // 处理图片下载
   const handleDownload = (imageUrl, index) => {
@@ -158,6 +233,12 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
                 alt={`Generated image ${index + 1}`}
                 className="w-full h-64 object-cover cursor-pointer"
                 onClick={(e) => handleImageClick(image, e)}
+                crossOrigin="anonymous"
+                loading="lazy"
+                onLoad={() => {
+                  // 图片加载完成后尝试缓存
+                  preloadAndCacheImage(image.url);
+                }}
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0IiBmaWxsPSIjZjVmNWY1Ii8+PHRleHQgeD0iMTIiIHk9IjEyIiBmb250LXNpemU9IjE0IiBmaWxsPSIjYWFhYWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBhbGlnbm1lbnQtYmFzZWxpbmU9Im1pZGRsZSI+SW1hZ2UgRXJyb3I8L3RleHQ+PC9zdmc+';
@@ -235,8 +316,11 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
             </button>
             <img 
               src={expandedImage.url} 
-              alt="Expanded image" 
+              alt="查看大图" 
               className="max-w-full max-h-[80vh] object-contain"
+              crossOrigin="anonymous"
+              loading="eager"
+              onLoad={() => preloadAndCacheImage(expandedImage.url)}
             />
             <div className="mt-4 flex justify-center">
               <button
@@ -287,6 +371,9 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
                       src={selectedImages[0].url} 
                       alt="比较图片 1" 
                       className="max-w-full max-h-full object-contain"
+                      crossOrigin="anonymous"
+                      loading="eager"
+                      onLoad={() => preloadAndCacheImage(selectedImages[0].url)}
                     />
                   </div>
                   <div className="mt-1 text-center">
@@ -310,6 +397,9 @@ const ImageGrid = ({ images, isLoading, batchSize }) => {
                       src={selectedImages[1].url} 
                       alt="比较图片 2" 
                       className="max-w-full max-h-full object-contain"
+                      crossOrigin="anonymous"
+                      loading="eager"
+                      onLoad={() => preloadAndCacheImage(selectedImages[1].url)}
                     />
                   </div>
                   <div className="mt-1 text-center">

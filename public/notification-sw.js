@@ -3,6 +3,7 @@ const VERSION = 'v1';
 
 // 缓存名称
 const CACHE_NAME = `notification-sw-${VERSION}`;
+const IMAGE_CACHE_NAME = `image-cache-${VERSION}`;
 
 // 需要缓存的静态资源
 const STATIC_CACHE_URLS = [
@@ -35,7 +36,10 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames
-          .filter(cacheName => cacheName.startsWith('notification-sw-') && cacheName !== CACHE_NAME)
+          .filter(cacheName => 
+            (cacheName.startsWith('notification-sw-') && cacheName !== CACHE_NAME) ||
+            (cacheName.startsWith('image-cache-') && cacheName !== IMAGE_CACHE_NAME)
+          )
           .map(cacheName => {
             console.log('删除旧缓存:', cacheName);
             return caches.delete(cacheName);
@@ -93,10 +97,51 @@ self.addEventListener('message', event => {
   }
 });
 
-// 拦截fetch请求，使用缓存响应图标请求
+// 拦截fetch请求，使用缓存响应图标请求和图片请求
 self.addEventListener('fetch', event => {
-  // 只处理图标请求，减少Service Worker的工作负担
-  if (event.request.url.includes('favicon.svg')) {
+  const url = new URL(event.request.url);
+  
+  // 判断是否为图片请求
+  const isImageRequest = 
+    url.pathname.endsWith('.jpg') || 
+    url.pathname.endsWith('.jpeg') || 
+    url.pathname.endsWith('.png') || 
+    url.pathname.endsWith('.gif') || 
+    url.pathname.endsWith('.webp') ||
+    // 针对特定的API CDN域名进行匹配（需要替换为实际的API域名）
+    url.hostname.includes('oaidalleapiprodscus.blob.core.windows.net') ||
+    url.hostname.includes('cdn.openai.com');
+
+  // 处理图片请求
+  if (isImageRequest) {
+    event.respondWith(
+      caches.open(IMAGE_CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(response => {
+          // 如果找到缓存的响应，返回它
+          if (response) {
+            console.log('图片缓存命中:', url.pathname);
+            return response;
+          }
+          
+          // 否则发起网络请求并缓存结果
+          return fetch(event.request).then(networkResponse => {
+            if (networkResponse && networkResponse.ok) {
+              console.log('缓存新图片:', url.pathname);
+              // 复制响应，因为响应流只能使用一次
+              const responseToCache = networkResponse.clone();
+              cache.put(event.request, responseToCache);
+            }
+            return networkResponse;
+          }).catch(error => {
+            console.error('获取图片失败:', error);
+            throw error;
+          });
+        });
+      })
+    );
+  } 
+  // 处理图标请求
+  else if (event.request.url.includes('favicon.svg')) {
     event.respondWith(
       caches.match(event.request).then(response => {
         return response || fetch(event.request);

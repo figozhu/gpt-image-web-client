@@ -1,0 +1,49 @@
+name: 构建并发布
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 构建项目
+        run: npm run build
+
+      - name: 创建ZIP归档
+        run: |
+          cd build
+          zip -r ../gpt-image-web-client-${{ github.ref_name }}.zip .
+          cd ..
+
+      - name: 创建GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            gpt-image-web-client-${{ github.ref_name }}.zip
+          name: 发布 ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 部署到GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build
+          branch: gh-pages 

@@ -250,7 +250,7 @@ const SettingsForm = () => {
             ))}
           </div>
           <p className="text-xs text-gray-500">
-            每个API请求返回的图片数量。更多图片可能会增加API费用。
+            每个API请求返回的图片数量。使用gpt-4o-image-vip模型时，更多图片不会增加API费用。
           </p>
         </div>
         

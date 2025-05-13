@@ -268,7 +268,7 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
                   生成中...
                 </span>
               ) : (
-                `生成 ${batchSize} 张图像`
+                `并发 ${batchSize} 个请求`
               )}
             </button>
             

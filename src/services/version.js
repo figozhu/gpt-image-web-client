@@ -3,10 +3,10 @@
  */
 
 // 从package.json获取的应用版本号
-export const APP_VERSION = '1.1.3';
+export const APP_VERSION = '1.2.1';
 
 // 版本号发布日期
-export const VERSION_DATE = '2025-05-06';
+export const VERSION_DATE = '2025-05-13';
 
 // 获取格式化显示的版本信息
 export function getVersionInfo() {

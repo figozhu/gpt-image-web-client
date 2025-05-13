@@ -228,7 +228,7 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
         <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
           <div className="flex-1 space-y-2 mb-4 md:mb-0">
             <label htmlFor="batchSize" className="block text-sm font-medium text-gray-700 flex justify-between">
-              <span>批量生成数量:</span>
+              <span>并发请求数量:</span>
               <span className="text-blue-600">{batchSize}</span>
             </label>
             <input

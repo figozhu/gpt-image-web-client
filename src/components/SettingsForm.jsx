@@ -215,7 +215,7 @@ const SettingsForm = () => {
         
         <div className="space-y-2">
           <label htmlFor="batchSize" className="block text-sm font-medium text-gray-700">
-            默认批量生成数量: {formData.batchSize}
+            默认并发请求数量: {formData.batchSize}
           </label>
           <input
             type="range"

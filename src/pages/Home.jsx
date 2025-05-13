@@ -87,6 +87,96 @@ const Home = () => {
     }
   };
   
+  // 辅助函数：调用单个图像生成API
+  const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) => {
+    const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
+    
+    // 如果提供了比例，将其添加到提示词内容中
+    let textContent = prompt;
+    if (ratio) {
+      textContent = `${prompt}\n画面尺寸：${ratio}`;
+    }
+    
+    // 添加图片数量指定
+    if (config.imagesPerRequest && config.imagesPerRequest > 1) {
+      textContent = `${textContent}\n要求返回${config.imagesPerRequest}张图片。`;
+    }
+    
+    // 构建content数组
+    const contentArray = [
+      {
+        type: "text",
+        text: textContent
+      }
+    ];
+    
+    // 如果提供了图片数组，添加到content数组
+    if (imageBase64Array && imageBase64Array.length > 0) {
+      imageBase64Array.forEach(imageBase64 => {
+        contentArray.push({
+          type: "image_url",
+          image_url: {
+            url: `data:image/jpeg;base64,${imageBase64}`
+          }
+        });
+      });
+    }
+    
+    const requestBody = {
+      model: model || 'gpt-4o-image-vip',
+      messages: [
+        {
+          role: "user",
+          content: contentArray
+        }
+      ]
+    };
+    
+    // 导入解混淆函数
+    const { deobfuscateApiKey } = await import('../services/storage');
+    // 解密API密钥
+    const decodedApiKey = deobfuscateApiKey(apiKey);
+    
+    const response = await fetch(finalEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${decodedApiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API错误 (${response.status}): ${errorText}`);
+    }
+    
+    return await response.json();
+  };
+  
+  // 处理图像生成结果，提取所有图片URL
+  const extractImageUrls = (responseData) => {
+    const images = [];
+    
+    if (responseData && responseData.choices && responseData.choices[0] && 
+        responseData.choices[0].message && responseData.choices[0].message.content) {
+      
+      const content = responseData.choices[0].message.content;
+      
+      // 匹配所有图像URL模式
+      const imageUrlPattern = /!\[.*?\]\((.*?)\)/g;
+      let match;
+      
+      while ((match = imageUrlPattern.exec(content)) !== null) {
+        if (match[1]) {
+          images.push(match[1]);
+        }
+      }
+    }
+    
+    return images;
+  };
+  
   // 处理图像生成
   const handleGenerate = async ({ prompt, batchSize, ratio, imageBase64Array }) => {
     // 检查配置
@@ -151,21 +241,20 @@ const Home = () => {
         if (result.status === 'fulfilled') {
           const data = result.value;
           
-          // 检查API返回的内容格式
-          if (data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
-            // 提取图像URL (特定于API返回格式)
-            // 注意: 这里的逻辑可能需要根据实际API返回格式进行调整
-            const imageUrlMatch = data.choices[0].message.content.match(/!\[.*?\]\((.*?)\)/);
-            if (imageUrlMatch && imageUrlMatch[1]) {
-              const imageUrl = imageUrlMatch[1];
+          // 提取所有图像URL
+          const imageUrls = extractImageUrls(data);
+          
+          if (imageUrls.length > 0) {
+            // 为每个提取的图像URL创建对象
+            imageUrls.forEach((imageUrl, imgIndex) => {
               processedImages.push({
-                id: `img-${Date.now()}-${index}`,
+                id: `img-${Date.now()}-${index}-${imgIndex}`,
                 url: imageUrl,
                 timestamp: new Date().toISOString(),
                 prompt: prompt
               });
-              hasSuccesses = true;
-            }
+            });
+            hasSuccesses = true;
           }
         } else {
           console.error(`请求 ${index + 1} 失败:`, result.reason);
@@ -259,68 +348,6 @@ const Home = () => {
   
   // 为handleGenerate增加updatePrompt方法，使其可以被PromptInput使用
   handleGenerate.updatePrompt = updatePromptCallback;
-  
-  // 辅助函数：调用单个图像生成API
-  const generateImage = async (prompt, imageBase64Array, apiKey, apiEndpoint, useProxy, proxyUrl, ratio, model) => {
-    const finalEndpoint = useProxy ? `${proxyUrl}${apiEndpoint}` : apiEndpoint;
-    
-    // 如果提供了比例，将其添加到提示词内容中
-    let textContent = prompt;
-    if (ratio) {
-      textContent = `${prompt}\n画面尺寸：${ratio}`;
-    }
-    
-    // 构建content数组
-    const contentArray = [
-      {
-        type: "text",
-        text: textContent
-      }
-    ];
-    
-    // 如果提供了图片数组，添加到content数组
-    if (imageBase64Array && imageBase64Array.length > 0) {
-      imageBase64Array.forEach(imageBase64 => {
-        contentArray.push({
-          type: "image_url",
-          image_url: {
-            url: `data:image/jpeg;base64,${imageBase64}`
-          }
-        });
-      });
-    }
-    
-    const requestBody = {
-      model: model || 'gpt-4o-image-vip',
-      messages: [
-        {
-          role: "user",
-          content: contentArray
-        }
-      ]
-    };
-    
-    // 导入解混淆函数
-    const { deobfuscateApiKey } = await import('../services/storage');
-    // 解密API密钥
-    const decodedApiKey = deobfuscateApiKey(apiKey);
-    
-    const response = await fetch(finalEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${decodedApiKey}`
-      },
-      body: JSON.stringify(requestBody)
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API错误 (${response.status}): ${errorText}`);
-    }
-    
-    return await response.json();
-  };
   
   return (
     <div className="min-h-screen bg-gray-50">

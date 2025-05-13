@@ -292,6 +292,24 @@ const PromptInput = ({ onGenerate, isLoading, initialPrompt = '', initialBatchSi
             )}
           </div>
         </div>
+        
+        {/* 显示每个请求返回图片数量的信息 */}
+        {config.imagesPerRequest && config.imagesPerRequest > 1 && (
+          <div className="mt-2 px-3 py-2 bg-blue-50 rounded text-sm text-blue-800 border border-blue-100">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>
+                已设置每个请求返回 <strong>{config.imagesPerRequest}</strong> 张图片
+                {batchSize > 1 ? `，总共将返回 ${batchSize * config.imagesPerRequest} 张图片` : ''}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-gray-600">
+              设置中可以修改每个请求返回的图片数量
+            </div>
+          </div>
+        )}
       </form>
     </div>
   );

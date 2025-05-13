@@ -9,11 +9,12 @@ const SettingsForm = () => {
   const [formData, setFormData] = useState({
     apiEndpoint: '',
     apiKey: '',
-    batchSize: 4,
+    batchSize: 1,
     useProxy: false,
     proxyUrl: '',
     model: 'gpt-4o-image-vip',
-    notificationEnabled: true
+    notificationEnabled: true,
+    imagesPerRequest: 4
   });
   
   const [showApiKey, setShowApiKey] = useState(false);
@@ -28,7 +29,8 @@ const SettingsForm = () => {
       useProxy: config.useProxy || false,
       proxyUrl: config.proxyUrl || '',
       model: config.model || 'gpt-4o-image-vip',
-      notificationEnabled: config.notificationEnabled !== false
+      notificationEnabled: config.notificationEnabled !== false,
+      imagesPerRequest: config.imagesPerRequest || 1
     });
   }, [config, showApiKey]);
   
@@ -44,7 +46,8 @@ const SettingsForm = () => {
       useProxy: formData.useProxy,
       proxyUrl: formData.proxyUrl,
       model: formData.model,
-      notificationEnabled: formData.notificationEnabled
+      notificationEnabled: formData.notificationEnabled,
+      imagesPerRequest: formData.imagesPerRequest
     };
     
     // 只有当API密钥被修改时才更新它
@@ -81,7 +84,8 @@ const SettingsForm = () => {
       useProxy: config.useProxy || false,
       proxyUrl: config.proxyUrl || '',
       model: config.model || 'gpt-4o-image-vip',
-      notificationEnabled: config.notificationEnabled !== false
+      notificationEnabled: config.notificationEnabled !== false,
+      imagesPerRequest: config.imagesPerRequest || 1
     });
     setShowApiKey(false);
   };
@@ -223,6 +227,31 @@ const SettingsForm = () => {
             value={formData.batchSize}
             onChange={handleChange}
           />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            每个请求返回图片数量
+          </label>
+          <div className="flex space-x-2">
+            {[1, 2, 4].map(num => (
+              <button
+                key={num}
+                type="button"
+                className={`px-4 py-2 rounded ${
+                  formData.imagesPerRequest === num 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                onClick={() => setFormData(prev => ({ ...prev, imagesPerRequest: num }))}
+              >
+                {num}张
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500">
+            每个API请求返回的图片数量。更多图片可能会增加API费用。
+          </p>
         </div>
         
         <div className="space-y-4">

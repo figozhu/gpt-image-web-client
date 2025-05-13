@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { getNotificationPermission } from '../services/notification';
 import { obfuscateApiKey, deobfuscateApiKey } from '../services/storage';
 
@@ -9,7 +9,8 @@ const defaultConfig = {
   useProxy: false,
   proxyUrl: "",
   model: "gpt-4o-image-vip",
-  notificationEnabled: true
+  notificationEnabled: true,
+  imagesPerRequest: 1
 };
 
 const ConfigContext = createContext();
@@ -36,41 +37,31 @@ export const ConfigProvider = ({ children }) => {
   }, []);
   
   // 更新配置并保存到LocalStorage
-  const updateConfig = (newConfig) => {
-    // 确保API密钥已经被混淆
-    if (newConfig.apiKey && !newConfig.apiKey.startsWith('••••')) {
-      // 检查是否已经是混淆状态的字符串
-      let isAlreadyObfuscated = false;
-      try {
-        // 尝试解码 - 如果能成功解码，可能已经是混淆状态
-        deobfuscateApiKey(newConfig.apiKey);
-        isAlreadyObfuscated = true;
-      } catch (e) {
-        // 解码失败，可能是未混淆的原始密钥
-        isAlreadyObfuscated = false;
-      }
-      
-      // 只有在确定密钥未混淆时才进行混淆
-      if (!isAlreadyObfuscated) {
-        newConfig.apiKey = obfuscateApiKey(newConfig.apiKey);
-      }
-    }
-    
-    setConfig(newConfig);
-    localStorage.setItem('gptImageConfig', JSON.stringify(newConfig));
-  };
+  const updateConfig = useCallback((updates) => {
+    setConfig(prevConfig => {
+      const newConfig = { ...prevConfig, ...updates };
+      localStorage.setItem('gptImageConfig', JSON.stringify(newConfig));
+      return newConfig;
+    });
+  }, []);
   
   // 更新通知权限状态
   const updateNotificationPermission = (permission) => {
     setNotificationPermission(permission);
   };
   
+  // 更新每个请求返回的图片数量
+  const updateImagesPerRequest = useCallback((count) => {
+    updateConfig({ imagesPerRequest: count });
+  }, [updateConfig]);
+  
   return (
     <ConfigContext.Provider value={{ 
       config, 
       updateConfig, 
       notificationPermission,
-      updateNotificationPermission
+      updateNotificationPermission,
+      updateImagesPerRequest
     }}>
       {children}
     </ConfigContext.Provider>
